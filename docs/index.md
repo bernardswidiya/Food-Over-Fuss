@@ -36,6 +36,7 @@ dan preferensi pengguna. Selain itu, aplikasi juga menyediakan fitur estimasi ka
 implementasi menu dalam kehidupan sehari-hari.
 
 **Rancangan Fitur Solusi:**
+
 | Fitur | Keterangan |
 | :--- | :--- |
 | Input Preferensi Pengguna | Fitur yang memungkinkan pengguna memasukkan preferensi makanan, tujuan konsumsi (sehat, diet, hemat), serta batasan seperti alergi atau pantangan tertentu. |
@@ -50,6 +51,7 @@ implementasi menu dalam kehidupan sehari-hari.
 ### 4. Analisis Kompetitor
 
 #### Kompetitor 1
+
 | Atribut | Keterangan |
 | :--- | :--- |
 | **Nama** | Mealime |
@@ -61,6 +63,7 @@ implementasi menu dalam kehidupan sehari-hari.
 | **Key Competitive Advantage & Unique Value** | Kemudahan penggunaan dan pengalaman pengguna yang intuitif, sehingga cocok untuk pengguna awam yang ingin perencanaan menu cepat tanpa konfigurasi kompleks. |
 
 #### Kompetitor 2
+
 | Atribut | Keterangan |
 | :--- | :--- |
 | **Nama** | PlanEat |
@@ -72,6 +75,7 @@ implementasi menu dalam kehidupan sehari-hari.
 | **Key Competitive Advantage & Unique Value** | Pemanfaatan AI untuk personalisasi menu, sehingga pengguna mendapatkan rekomendasi yang lebih relevan dibandingkan meal planner konvensional. |
 
 #### Kompetitor 3
+
 | Atribut | Keterangan |
 | :--- | :--- |
 | **Nama** | Mealmind |
