@@ -58,8 +58,8 @@ implementasi menu dalam kehidupan sehari-hari.
 | **Jenis Kompetitor** | Direct Competitors |
 | **Jenis Produk** | Meal planning dan recipe recommendation |
 | **Target Customer** | Individu dan keluarga yang ingin menyusun menu makan sehat secara praktis |
-| **Kelebihan** | <ul><li>Antarmuka pengguna sederhana dan mudah digunakan</li><li>Menyediakan menu yang dapat disesuaikan dengan preferensi dan alergi</li><li>Otomatis menghasilkan *grocery list* yang terstruktur</li></ul> |
-| **Kekurangan** | <ul><li>Fleksibilitas personalisasi nutrisi masih terbatas</li><li>Fitur AI generatif belum mendalam (lebih bersifat rule-based)</li></ul> |
+| **Kelebihan** | - Antarmuka pengguna sederhana dan mudah digunakan<br>- Menyediakan menu yang dapat disesuaikan dengan preferensi dan alergi<br>- Otomatis menghasilkan *grocery list* yang terstruktur |
+| **Kekurangan** | - Fleksibilitas personalisasi nutrisi masih terbatas<br>- Fitur AI generatif belum mendalam (lebih bersifat rule-based) |
 | **Key Competitive Advantage & Unique Value** | Kemudahan penggunaan dan pengalaman pengguna yang intuitif, sehingga cocok untuk pengguna awam yang ingin perencanaan menu cepat tanpa konfigurasi kompleks. |
 
 #### Kompetitor 2
@@ -70,8 +70,8 @@ implementasi menu dalam kehidupan sehari-hari.
 | **Jenis Kompetitor** | Direct Competitors |
 | **Jenis Produk** | AI-powered meal planner |
 | **Target Customer** | Pengguna individu yang ingin menu makan terpersonalisasi berbasis AI |
-| **Kelebihan** | <ul><li>Menggunakan AI untuk menyusun menu secara otomatis</li><li>Mendukung berbagai jenis diet dan preferensi makanan</li><li>Menyediakan daftar belanja otomatis</li></ul> |
-| **Kekurangan** | <ul><li>Pilihan resep masih relatif terbatas</li><li>Informasi nutrisi belum terlalu detail</li></ul> |
+| **Kelebihan** | - Menggunakan AI untuk menyusun menu secara otomatis<br>- Mendukung berbagai jenis diet dan preferensi makanan<br>- Menyediakan daftar belanja otomatis |
+| **Kekurangan** | - Pilihan resep masih relatif terbatas<br>- Informasi nutrisi belum terlalu detail |
 | **Key Competitive Advantage & Unique Value** | Pemanfaatan AI untuk personalisasi menu, sehingga pengguna mendapatkan rekomendasi yang lebih relevan dibandingkan meal planner konvensional. |
 
 #### Kompetitor 3
@@ -82,8 +82,8 @@ implementasi menu dalam kehidupan sehari-hari.
 | **Jenis Kompetitor** | Direct Competitors |
 | **Jenis Produk** | Aplikasi AI-powered meal planner dan menyediakan daftar belanja interaktif dan resep yang sesuai dengan kondisi pengguna. |
 | **Target Customer** | Individu yang ingin menyusun rencana makan secara otomatis dan personal. |
-| **Kelebihan** | <ul><li>AI Meal Plan Personalization</li><li>Interactive Shopping List</li><li>Recipe Guidance</li></ul> |
-| **Kekurangan** | <ul><li>Biaya Penggunaan</li><li>Ketergantungan pada Input Manual</li><li>Batasan Customisasi Lanjutan</li></ul> |
+| **Kelebihan** | - AI Meal Plan Personalization<br>- Interactive Shopping List<br>- Recipe Guidance |
+| **Kekurangan** | - Biaya Penggunaan<br>- Ketergantungan pada Input Manual<br>- Batasan Customisasi Lanjutan |
 | **Key Competitive Advantage & Unique Value** | Meal planner berbasis AI yang lengkap dan praktis serta menyusun menu otomatis, memberikan shopping list interaktif, dan resep langkah demi langkah |
 
 ## Metologi SDLC
