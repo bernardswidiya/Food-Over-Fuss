@@ -1,4 +1,8 @@
-# Project Senior Project TI
+---
+title: Food Over Fuss
+---
+
+## Project Senior Project TI
 **Instansi:** Departemen Teknik Elektro dan Teknologi Informasi, Fakultas Teknik, Universitas Gadjah Mada
 
 ## Kelompok: Nonstop notif
