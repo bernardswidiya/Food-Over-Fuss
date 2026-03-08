@@ -1,0 +1,31 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+frontend/node_modules/
+
+# Build and coverage artifacts
+build/
+dist/
+coverage/
+
+# Next.js
+frontend/.next/
+frontend/out/
+
+# VS Code
+.vscode/
