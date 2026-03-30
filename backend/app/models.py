@@ -9,8 +9,9 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     email = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
-
+    hashed_password = Column(String, nullable=True)
+    auth_provider = Column(String, default="local")
+    profile_picture = Column(String, nullable=True)
     preference = relationship("Preference", back_populates="owner", uselist=False)
     meal_plans = relationship("MealPlan", back_populates="owner")
 
