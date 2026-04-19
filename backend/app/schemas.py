@@ -15,6 +15,7 @@ class UserResponse(BaseModel):
     name: str
     email: str
     auth_provider: str
+    profile_picture: Optional[str] = None
 
     class Config:
         from_attributes = True
