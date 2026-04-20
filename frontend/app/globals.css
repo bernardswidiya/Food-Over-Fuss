@@ -24,10 +24,6 @@ body {
   color: var(--color-text-main);
 }
 
-/* ============================================
-   Floating Label Input Animation
-   ============================================ */
-
 .input-wrapper {
   position: relative;
 }
@@ -72,10 +68,6 @@ body {
 .floating-input:not(:focus):not(:placeholder-shown) ~ .floating-label {
   color: var(--color-muted);
 }
-
-/* ============================================
-   Auth Page Animations
-   ============================================ */
 
 @keyframes fadeSlideUp {
   from {
