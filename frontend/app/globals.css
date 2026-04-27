@@ -98,3 +98,16 @@ body {
 .auth-form-delay-3 { animation-delay: 0.15s; opacity: 0; }
 .auth-form-delay-4 { animation-delay: 0.20s; opacity: 0; }
 .auth-form-delay-5 { animation-delay: 0.25s; opacity: 0; }
+
+/* Dashboard utilities */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 8px);
+}

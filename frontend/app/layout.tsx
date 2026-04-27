@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Food Over Fuss - Eat Well. Zero Fuss.",
-  description: "Automates weekly menus and generates grocery lists.",
+  title: "Food Over Fuss - Makan Enak. Tanpa Ribet.",
+  description: "Otomatis bikin menu mingguan dan daftar belanjaan buat kamu.",
 };
 
 export default function RootLayout({
@@ -12,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="id">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
