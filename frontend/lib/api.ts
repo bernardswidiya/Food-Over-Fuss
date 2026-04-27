@@ -14,6 +14,7 @@ export interface RegisterPayload {
 export interface AuthToken {
   access_token: string;
   token_type: string;
+  has_preferences: boolean;
 }
 
 export interface ApiError {
@@ -49,4 +50,37 @@ export async function registerUser(payload: RegisterPayload): Promise<{ id: numb
 /** Redirects the browser to the backend's Google OAuth endpoint. */
 export function loginWithGoogle(): void {
   window.location.href = `${API_BASE_URL}/auth/google`;
+}
+
+/* ── Preferences (Onboarding) ── */
+
+export interface PreferencesPayload {
+  diet_goal: string;
+  daily_budget: number;
+  allergies: string[];
+}
+
+export interface PreferencesResponse {
+  id: number;
+  user_id: number;
+  diet_goal: string;
+  daily_budget: number;
+  allergies: string;
+}
+
+function getAuthHeaders(): Record<string, string> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
+export async function savePreferences(payload: PreferencesPayload): Promise<PreferencesResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/preferences`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<PreferencesResponse>(res);
 }
