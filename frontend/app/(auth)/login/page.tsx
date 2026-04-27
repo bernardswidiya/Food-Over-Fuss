@@ -22,9 +22,15 @@ export default function LoginPage() {
       const data = await loginUser({ email, password });
       // Store token (use httpOnly cookies in production)
       localStorage.setItem("access_token", data.access_token);
-      router.push("/dashboard");
+      document.cookie = `access_token=${data.access_token}; path=/; max-age=604800; samesite=lax`;
+      // Route berdasarkan status preferensi
+      if (data.has_preferences) {
+        router.push("/dashboard");
+      } else {
+        router.push("/onboarding");
+      }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Login failed. Please try again.");
+      setError(err instanceof Error ? err.message : "Login gagal. Coba lagi, yuk.");
     } finally {
       setLoading(false);
     }
@@ -38,7 +44,7 @@ export default function LoginPage() {
         {/* Background photo */}
         <Image
           src="/auth-preview.png"
-          alt="Fresh ingredients"
+          alt="Bahan-bahan segar"
           fill
           className="object-cover object-center"
           priority
@@ -63,15 +69,15 @@ export default function LoginPage() {
           {/* Hero copy */}
           <div className="max-w-md animate-fade-slide-up">
             <span className="text-primary font-body text-sm uppercase tracking-widest mb-4 block font-bold">
-              The Culinary Curator
+              Kurator Kuliner
             </span>
             <h1 className="text-white font-heading text-5xl font-bold leading-tight tracking-tight mb-6">
-              Cook with confidence, eat with{" "}
-              <span className="text-primary">intention.</span>
+              Masak penuh percaya diri, makan dengan{" "}
+              <span className="text-primary">niat.</span>
             </h1>
             <p className="text-white/70 text-lg leading-relaxed mb-10">
-              Join a community that celebrates the art of simple, high-quality
-              meal planning. No fuss, just flavor.
+              Gabung komunitas yang merayakan seni meal planning
+              simpel tapi berkualitas. Tanpa ribet, cuma rasa.
             </p>
 
             {/* Social proof chips */}
@@ -88,7 +94,7 @@ export default function LoginPage() {
                 ))}
               </div>
               <p className="text-white/60 text-sm">
-                <span className="text-white font-semibold">2,400+</span> users already eating smarter
+                <span className="text-white font-semibold">2.400+</span> pengguna udah makan lebih cerdas
               </p>
             </div>
           </div>
@@ -111,10 +117,10 @@ export default function LoginPage() {
           {/* Header */}
           <div className="animate-fade-slide-up auth-form-delay-1 flex flex-col gap-2 text-center lg:text-left">
             <h1 className="text-[32px] sm:text-[40px] font-bold font-heading tracking-tight text-text-main leading-tight">
-              Welcome back
+              Selamat datang kembali
             </h1>
             <p className="text-muted text-base font-medium">
-              Start eating well. Enter your details below.
+              Yuk, lanjut makan enak. Masukkan detail kamu di bawah.
             </p>
           </div>
 
@@ -141,7 +147,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
               />
-              <label className="floating-label" htmlFor="email">Email Address</label>
+              <label className="floating-label" htmlFor="email">Alamat Email</label>
             </div>
 
             {/* Password */}
@@ -156,7 +162,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
               />
-              <label className="floating-label" htmlFor="password">Password</label>
+              <label className="floating-label" htmlFor="password">Kata Sandi</label>
               <button
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-muted hover:text-text-main transition-colors focus:outline-none"
                 type="button"
@@ -175,7 +181,7 @@ export default function LoginPage() {
                 href="#"
                 className="text-sm font-medium text-primary hover:text-primary-hover transition-colors"
               >
-                Forgot Password?
+                Lupa Kata Sandi?
               </Link>
             </div>
 
@@ -192,11 +198,11 @@ export default function LoginPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                   </svg>
-                  Logging in…
+                  Sedang masuk…
                 </>
               ) : (
                 <>
-                  Log In
+                  Masuk
                   <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
                 </>
               )}
@@ -206,7 +212,7 @@ export default function LoginPage() {
           {/* Divider */}
           <div className="animate-fade-slide-up auth-form-delay-3 relative flex items-center py-2">
             <div className="flex-grow border-t border-muted/20" />
-            <span className="flex-shrink-0 mx-4 text-sm text-muted font-medium">Or continue with</span>
+            <span className="flex-shrink-0 mx-4 text-sm text-muted font-medium">Atau lanjutkan dengan</span>
             <div className="flex-grow border-t border-muted/20" />
           </div>
 
@@ -225,16 +231,16 @@ export default function LoginPage() {
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
               </svg>
-              <span className="text-base font-semibold text-text-main">Sign in with Google</span>
+              <span className="text-base font-semibold text-text-main">Masuk dengan Google</span>
             </button>
           </div>
 
           {/* Toggle to Register */}
           <div className="animate-fade-slide-up auth-form-delay-5 text-center">
             <p className="text-sm text-muted font-medium">
-              Don&apos;t have an account?{" "}
+              Belum punya akun?{" "}
               <Link href="/register" className="text-primary font-bold hover:text-primary-hover transition-colors">
-                Register now
+                Daftar sekarang
               </Link>
             </p>
           </div>
@@ -242,8 +248,8 @@ export default function LoginPage() {
 
         {/* Footer links */}
         <div className="absolute bottom-8 right-8 hidden lg:flex gap-6 text-xs text-muted font-medium">
-          <Link href="#" className="hover:text-primary transition-colors">Privacy Policy</Link>
-          <Link href="#" className="hover:text-primary transition-colors">Terms of Service</Link>
+          <Link href="#" className="hover:text-primary transition-colors">Kebijakan Privasi</Link>
+          <Link href="#" className="hover:text-primary transition-colors">Syarat & Ketentuan</Link>
         </div>
       </section>
     </main>
