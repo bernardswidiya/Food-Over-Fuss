@@ -1,69 +1,82 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Text, Date
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, Date, Enum as SQLEnum, JSON
 from sqlalchemy.orm import relationship
+import enum
 from .database import Base
 
-# Tabel 1: Data Autentikasi Pengguna
+class MealTypeEnum(str, enum.Enum):
+    sarapan = "sarapan"
+    siang = "siang"
+    malam = "malam"
+
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)
     email = Column(String, unique=True, index=True)
-    hashed_password = Column(String, nullable=True)
-    auth_provider = Column(String, default="local")
-    profile_picture = Column(String, nullable=True)
-    preference = relationship("Preference", back_populates="owner", uselist=False)
-    meal_plans = relationship("MealPlan", back_populates="owner")
+    hashed_password = Column(String)
+    first_name = Column(String)
+    last_name = Column(String)
 
-# Tabel 2: Batasan Diet (Input dari Form Onboarding)
+    preference = relationship("Preference", back_populates="owner", uselist=False, cascade="all, delete-orphan")
+    meal_plans = relationship("MealPlan", back_populates="owner", cascade="all, delete-orphan")
+    grocery_items = relationship("GroceryItem", back_populates="owner", cascade="all, delete-orphan")
+
 class Preference(Base):
     __tablename__ = "preferences"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), unique=True)
     
-    daily_budget = Column(Float, nullable=True)
-    allergies = Column(String, nullable=True) 
-    diet_goal = Column(String, nullable=True) 
+    goal = Column(String)
+    weekly_budget = Column(Float)
+    dietary_restrictions = Column(JSON, default=list)
+    notif_reminders = Column(Boolean, default=True)
+    email_list = Column(Boolean, default=False)
 
     owner = relationship("User", back_populates="preference")
 
-# Tabel 3: Jadwal Menu Mingguan
 class MealPlan(Base):
     __tablename__ = "meal_plans"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    start_date = Column(Date)
-    end_date = Column(Date)
-
-    owner = relationship("User", back_populates="meal_plans")
-    daily_menus = relationship("DailyMenu", back_populates="meal_plan", cascade="all, delete-orphan")
-    grocery_list = relationship("GroceryList", back_populates="meal_plan", uselist=False, cascade="all, delete-orphan")
-
-# Tabel 4: Detail Menu per Waktu Makan
-class DailyMenu(Base):
-    __tablename__ = "daily_menus"
-
-    id = Column(Integer, primary_key=True, index=True)
-    meal_plan_id = Column(Integer, ForeignKey("meal_plans.id"))
     
-    day_name = Column(String)
-    meal_type = Column(String) 
+    date = Column(Date)
+    meal_type = Column(SQLEnum(MealTypeEnum))
     recipe_name = Column(String)
     calories = Column(Integer)
-    ingredients = Column(Text)
+    protein = Column(Integer)
+    carbs = Column(Integer)
+    fat = Column(Integer)
+    is_cleared = Column(Boolean, default=False)
 
-    meal_plan = relationship("MealPlan", back_populates="daily_menus")
+    owner = relationship("User", back_populates="meal_plans")
 
-# Tabel 5: Daftar Belanja Rekapitulasi
-class GroceryList(Base):
-    __tablename__ = "grocery_lists"
+class GroceryItem(Base):
+    __tablename__ = "grocery_items"
 
     id = Column(Integer, primary_key=True, index=True)
-    meal_plan_id = Column(Integer, ForeignKey("meal_plans.id"), unique=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
     
-    compiled_ingredients = Column(Text) 
-    status = Column(String, default="Pending") 
+    name = Column(String)
+    qty = Column(String)
+    category = Column(String)
+    is_checked = Column(Boolean, default=False)
 
-    meal_plan = relationship("MealPlan", back_populates="grocery_list")
+    owner = relationship("User", back_populates="grocery_items")
+
+class Recipe(Base):
+    __tablename__ = "recipes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    meal_type = Column(SQLEnum(MealTypeEnum))
+    prep_time = Column(Integer)
+    calories = Column(Integer)
+    protein = Column(Integer)
+    carbs = Column(Integer)
+    fat = Column(Integer)
+    ingredients = Column(JSON, default=list)
+    instructions = Column(JSON, default=list)
+    is_published = Column(Boolean, default=False)
+    image_url = Column(String, nullable=True)
