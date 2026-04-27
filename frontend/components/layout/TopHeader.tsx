@@ -18,12 +18,15 @@ export default function TopHeader() {
   const firstName = fullName.split(" ")[0];
 
   useEffect(() => {
-    setMounted(true);
-    const hour = new Date().getHours();
-    if (hour < 11) setGreeting("Selamat pagi");
-    else if (hour < 15) setGreeting("Selamat siang");
-    else if (hour < 18) setGreeting("Selamat sore");
-    else setGreeting("Selamat malam");
+    const timer = setTimeout(() => {
+      setMounted(true);
+      const hour = new Date().getHours();
+      if (hour < 11) setGreeting("Selamat pagi");
+      else if (hour < 15) setGreeting("Selamat siang");
+      else if (hour < 18) setGreeting("Selamat sore");
+      else setGreeting("Selamat malam");
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const renderTitle = () => {
@@ -35,7 +38,7 @@ export default function TopHeader() {
       return (
         <>
           <h1 className="text-lg font-heading font-bold text-text-main hidden md:block">
-            <span className="text-primary">{firstName}'s</span> Pantry
+            <span className="text-primary">{firstName}&apos;s</span> Pantry
           </h1>
           <h1 className="text-xl font-heading font-bold text-text-main md:hidden">Food Over Fuss</h1>
         </>

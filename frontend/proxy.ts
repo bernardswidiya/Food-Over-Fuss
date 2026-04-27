@@ -14,7 +14,6 @@ import type { NextRequest } from "next/server";
  * sesungguhnya tetap dilakukan oleh backend saat API dipanggil.
  */
 
-const PUBLIC_ROUTES = ["/", "/login", "/register"];
 const AUTH_ROUTES = ["/login", "/register"];
 const PROTECTED_PREFIXES = ["/dashboard", "/onboarding", "/grocery", "/calendar", "/settings", "/recipe"];
 
@@ -23,7 +22,6 @@ export function proxy(request: NextRequest) {
   const token = request.cookies.get("access_token")?.value
     || getTokenFromHeader(request);
 
-  const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
   const isAuthRoute = AUTH_ROUTES.includes(pathname);
   const isProtectedRoute = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 
