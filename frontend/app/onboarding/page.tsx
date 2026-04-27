@@ -68,7 +68,7 @@ export default function OnboardingPage() {
 
       {/* Logo Wrapper */}
       <div className="mb-8 flex flex-col items-center z-10">
-        <Image src="/Logo.png" alt="Food Over Fuss Logo" width={48} height={48} className="mb-3 object-contain" />
+        <Image src="/Logo.png" alt="Food Over Fuss Logo" width={48} height={48} className="mb-3 w-12 h-12 object-contain" />
         <h1 className="text-2xl font-heading font-extrabold tracking-tight">Food Over Fuss</h1>
       </div>
 

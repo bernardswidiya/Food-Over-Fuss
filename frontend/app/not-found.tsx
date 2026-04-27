@@ -23,6 +23,7 @@ export default function NotFound() {
               src="/notfound-preview.png"
               alt="Piring kosong - halaman nggak ditemukan"
               fill
+              sizes="(max-width: 768px) 100vw, 50vw"
               className="object-cover"
               priority
             />

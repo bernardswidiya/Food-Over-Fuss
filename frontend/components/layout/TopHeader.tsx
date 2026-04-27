@@ -74,7 +74,7 @@ export default function TopHeader() {
           <span className="material-symbols-outlined">notifications</span>
         </button>
         <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="w-10 h-10 rounded-full overflow-hidden border-2 border-transparent hover:border-primary transition-all focus:outline-none relative">
-          <Image src="/default-avatar.png" alt="Profile" fill className="object-cover bg-slate-200" />
+          <Image src="/default-avatar.png" alt="Profile" fill sizes="40px" className="object-cover bg-slate-200" />
         </button>
         {isProfileOpen && (
           <div className="absolute top-14 right-0 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 animate-fade-slide-up">

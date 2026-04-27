@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function AuthCallbackPage() {
+function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -29,6 +29,10 @@ export default function AuthCallbackPage() {
     }
   }, [router, searchParams]);
 
+  return <AuthCallbackLoading />;
+}
+
+function AuthCallbackLoading() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background-light">
       <div className="flex flex-col items-center gap-4">
@@ -39,5 +43,13 @@ export default function AuthCallbackPage() {
         <p className="text-muted font-medium font-body animate-pulse">Menghubungkan ke Google...</p>
       </div>
     </div>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={<AuthCallbackLoading />}>
+      <AuthCallbackContent />
+    </Suspense>
   );
 }

@@ -61,7 +61,7 @@ export default function SettingsPage() {
               <h2 className="text-xl font-heading font-bold text-text-main border-b border-gray-100 pb-4">Informasi Pribadi</h2>
               <div className="flex items-center gap-6 mb-2">
                 <div className="relative w-24 h-24 rounded-full shadow-sm border-4 border-white bg-slate-200 overflow-hidden">
-                   <Image src="/default-avatar.png" alt="Profile Photo" fill className="object-cover" />
+                   <Image src="/default-avatar.png" alt="Profile Photo" fill sizes="96px" loading="eager" className="object-cover" />
                 </div>
                 <div className="flex flex-col gap-2">
                   <button className="rounded-full bg-surface text-text-main px-5 py-2 text-sm font-bold hover:bg-gray-100 transition-colors border border-gray-200">Ubah Foto</button>
