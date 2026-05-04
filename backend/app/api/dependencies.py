@@ -16,7 +16,7 @@ def get_db():
         db.close()
 
 def get_current_user(request: Request, db: Session = Depends(get_db)):
-    # Ambil token dari HttpOnly Cookie "access_token"
+    """Ambil user dari HttpOnly Cookie 'access_token'."""
     token = request.cookies.get("access_token")
     if not token:
         raise HTTPException(
@@ -44,3 +44,12 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
             detail="User not found",
         )
     return user
+
+def get_admin_user(current_user: User = Depends(get_current_user)):
+    """Guard: hanya user dengan role 'admin' yang boleh lewat."""
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    return current_user

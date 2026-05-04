@@ -20,11 +20,11 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const data = await loginUser({ email, password });
-      // Store token (use httpOnly cookies in production)
-      localStorage.setItem("access_token", data.access_token);
-      document.cookie = `access_token=${data.access_token}; path=/; max-age=604800; samesite=lax`;
-      // Route berdasarkan status preferensi
-      if (data.has_preferences) {
+      // Token sudah diset sebagai HttpOnly Cookie oleh backend.
+      // Smart routing berdasarkan role dan status preferensi.
+      if (data.role === "admin") {
+        router.push("/admin/dashboard");
+      } else if (data.has_preferences) {
         router.push("/dashboard");
       } else {
         router.push("/onboarding");

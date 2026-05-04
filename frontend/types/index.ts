@@ -1,40 +1,59 @@
 export interface UserProfile {
-  firstName: string;
-  lastName: string;
-  email: string;
-  goal: string;
-  budget: number;
-  selectedDiets: string[];
-  notifReminders: boolean;
-  emailList: boolean;
-}
-
-export interface GroceryItem {
   id: number;
   name: string;
-  qty: string;
-  category: "produce" | "dairy" | "meat" | "pantry" | "other";
-  checked: boolean;
+  email: string;
+  role: string;
+  profile_picture: string | null;
+}
+
+export interface PreferenceProfile {
+  id: number;
+  user_id: number;
+  diet_goal: string;
+  daily_budget: number;
+  allergies: string | null;
+}
+
+export interface DailyMenu {
+  id: number;
+  meal_plan_id: number;
+  date: string;
+  meal_type: string;
+  recipe_name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  ingredients: string | null;
+  recipe_id: number | null;
+  is_cleared: boolean;
 }
 
 export interface MealPlan {
-  id: string;
-  day: string;
-  dateStr: string;
-  dateNum: number;
-  isToday: boolean;
-  meals: {
-    breakfast?: RecipeSummary;
-    lunch?: RecipeSummary;
-    dinner?: RecipeSummary;
-  };
+  id: number;
+  user_id: number;
+  start_date: string;
+  end_date: string;
+  daily_menus: DailyMenu[];
+}
+
+export interface GroceryItem {
+  name: string;
+  qty: string;
+  source_meals: string[];
 }
 
 export interface RecipeSummary {
-  id: string;
-  title: string;
-  prepTime: string;
-  calories: string;
-  image?: string;
-  tags?: string[];
+  id: number;
+  name: string;
+  meal_type: string;
+  prep_time: number;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  ingredients: string[];
+  instructions: string[];
+  is_published: boolean;
+  image_url: string | null;
 }

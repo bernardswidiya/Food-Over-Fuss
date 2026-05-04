@@ -1,12 +1,20 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from app.database import engine, Base
 from app.api.routers import auth, preferences, meals, groceries, admin
+import os
 
 # Buat semua tabel (Idealnya gunakan Alembic untuk production)
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Food Over Fuss API")
+
+# SessionMiddleware diperlukan oleh Authlib untuk Google OAuth state/CSRF
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.getenv("SECRET_KEY", "supersecretkey")
+)
 
 # Konfigurasi CORS
 origins = [

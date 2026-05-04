@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { savePreferences } from "@/lib/api";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -10,6 +11,7 @@ export default function OnboardingPage() {
   // State Navigasi
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   // State Form
   const [goal, setGoal] = useState("maintain");
@@ -50,11 +52,20 @@ export default function OnboardingPage() {
 
   const handleSave = async () => {
     setIsLoading(true);
-    // Simulasi API Call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsLoading(false);
-    // Redirect ke Dashboard setelah selesai
-    router.push("/dashboard");
+    setError("");
+    try {
+      await savePreferences({
+        diet_goal: goal,
+        daily_budget: budget,
+        allergies: selectedDiets.length > 0 ? selectedDiets.join(",") : undefined,
+      });
+      // Redirect ke Dashboard setelah berhasil
+      router.push("/dashboard");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Gagal menyimpan preferensi. Coba lagi.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const progressPercentage = (currentStep / 3) * 100;
@@ -100,6 +111,13 @@ export default function OnboardingPage() {
         {/* Form Body - Transisi Dinamis */}
         <div className="p-8 flex-1 flex flex-col gap-8 min-h-[360px]">
           
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 text-sm font-medium px-4 py-3 rounded-2xl">
+              {error}
+            </div>
+          )}
+
           {/* STEP 1: TUJUAN */}
           {currentStep === 1 && (
             <div className="flex flex-col gap-6 animate-fade-slide-up">

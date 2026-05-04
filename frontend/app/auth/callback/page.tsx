@@ -8,24 +8,23 @@ function AuthCallbackContent() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const accessToken = searchParams.get("access_token");
+    // Backend sudah set HttpOnly Cookie — kita hanya perlu baca query params
     const hasPreferences = searchParams.get("has_preferences") === "true";
+    const role = searchParams.get("role") || "user";
+    const error = searchParams.get("error");
 
-    if (accessToken) {
-      // Simpan di localStorage
-      localStorage.setItem("access_token", accessToken);
-      // Simpan di cookie agar terbaca oleh middleware
-      document.cookie = `access_token=${accessToken}; path=/; max-age=604800; samesite=lax`;
+    if (error) {
+      router.push(`/login?error=${encodeURIComponent(error)}`);
+      return;
+    }
 
-      // Redirect cerdas
-      if (hasPreferences) {
-        router.push("/dashboard");
-      } else {
-        router.push("/onboarding");
-      }
+    // Smart routing berdasarkan role
+    if (role === "admin") {
+      router.push("/admin/dashboard");
+    } else if (hasPreferences) {
+      router.push("/dashboard");
     } else {
-      // Jika token tidak ada, berarti ada error saat login
-      router.push("/login?error=GoogleAuthFailed");
+      router.push("/onboarding");
     }
   }, [router, searchParams]);
 

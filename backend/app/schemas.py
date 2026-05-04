@@ -6,14 +6,15 @@ from .models import MealTypeEnum
 # --- User Schemas ---
 class UserBase(BaseModel):
     email: EmailStr
-    first_name: str
-    last_name: str
+    name: str
 
 class UserCreate(UserBase):
     password: str
 
 class UserResponse(UserBase):
     id: int
+    role: str = "user"
+    profile_picture: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -25,15 +26,14 @@ class LoginRequest(BaseModel):
 class LoginResponse(BaseModel):
     message: str
     has_preferences: bool
+    role: str
     user: UserResponse
 
 # --- Preference Schemas ---
 class PreferenceBase(BaseModel):
-    goal: str
-    weekly_budget: float
-    dietary_restrictions: List[str]
-    notif_reminders: bool
-    email_list: bool
+    diet_goal: str
+    daily_budget: float
+    allergies: Optional[str] = None
 
 class PreferenceCreate(PreferenceBase):
     pass
@@ -45,16 +45,30 @@ class PreferenceResponse(PreferenceBase):
     class Config:
         from_attributes = True
 
+# --- DailyMenu Schemas ---
+class DailyMenuBase(BaseModel):
+    date: date
+    meal_type: str
+    recipe_name: str
+    calories: int = 0
+    protein: int = 0
+    carbs: int = 0
+    fat: int = 0
+    ingredients: Optional[str] = None
+    recipe_id: Optional[int] = None
+    is_cleared: bool = False
+
+class DailyMenuResponse(DailyMenuBase):
+    id: int
+    meal_plan_id: int
+
+    class Config:
+        from_attributes = True
+
 # --- MealPlan Schemas ---
 class MealPlanBase(BaseModel):
-    date: date
-    meal_type: MealTypeEnum
-    recipe_name: str
-    calories: int
-    protein: int
-    carbs: int
-    fat: int
-    is_cleared: bool = False
+    start_date: date
+    end_date: date
 
 class MealPlanCreate(MealPlanBase):
     pass
@@ -62,6 +76,7 @@ class MealPlanCreate(MealPlanBase):
 class MealPlanResponse(MealPlanBase):
     id: int
     user_id: int
+    daily_menus: List[DailyMenuResponse] = []
 
     class Config:
         from_attributes = True
@@ -86,6 +101,12 @@ class GroceryItemResponse(GroceryItemBase):
 
     class Config:
         from_attributes = True
+
+# --- Aggregated Grocery (computed, not from DB) ---
+class AggregatedGroceryItem(BaseModel):
+    name: str
+    qty: str
+    source_meals: List[str] = []  # e.g. ["Senin - Sarapan", "Rabu - Malam"]
 
 # --- Recipe Schemas ---
 class RecipeBase(BaseModel):
