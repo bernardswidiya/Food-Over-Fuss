@@ -154,12 +154,10 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(user)
     else:
-        # Existing user — update profile picture if changed
-        if google_picture and user.profile_picture != google_picture:
-            user.profile_picture = google_picture
+        # Existing user — do not overwrite profile picture to preserve Cloudinary uploads
         if not user.auth_provider or user.auth_provider == "local":
             user.auth_provider = "google"
-        db.commit()
+            db.commit()
     
     # Create JWT and set HttpOnly cookie
     access_token = create_access_token(data={"sub": str(user.id), "role": user.role})

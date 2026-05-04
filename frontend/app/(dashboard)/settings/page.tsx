@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { getMe, getPreferences, savePreferences, logoutUser } from "@/lib/api";
+import { getMe, getPreferences, savePreferences, logoutUser, uploadAvatar, deleteAvatar, deleteAccount } from "@/lib/api";
 import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
@@ -11,10 +11,17 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const initialLoadDone = useRef(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // State Informasi Pribadi
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [profilePicture, setProfilePicture] = useState<string | null>(null);
+  
+  // Avatar Upload State
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // State Preferensi AI
   const [goal, setGoal] = useState("maintain");
@@ -31,6 +38,7 @@ export default function SettingsPage() {
         ]);
         setName(userData.name);
         setEmail(userData.email);
+        setProfilePicture(userData.profile_picture);
         
         if (prefsData) {
           setGoal(prefsData.diet_goal || "maintain");
@@ -90,6 +98,63 @@ export default function SettingsPage() {
     router.push("/login");
   };
 
+  const handleDeleteAccount = () => {
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteAccount = async () => {
+    setDeletingAccount(true);
+    try {
+      await deleteAccount();
+      await logoutUser();
+      router.push("/login");
+    } catch (err: any) {
+      alert(err.message || "Gagal menghapus akun. Silakan coba lagi.");
+      setDeletingAccount(false);
+      setShowDeleteModal(false);
+    }
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate size (e.g. max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Ukuran file maksimal 5MB");
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const updatedUser = await uploadAvatar(file);
+      setProfilePicture(updatedUser.profile_picture);
+      // Reload page to reflect new avatar globally if it relies on context, or just let state handle it locally
+    } catch (err: any) {
+      alert(err.message || "Gagal mengunggah foto");
+    } finally {
+      setUploadingAvatar(false);
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleAvatarDelete = async () => {
+    if (!confirm("Yakin ingin menghapus foto profil?")) return;
+    
+    setUploadingAvatar(true);
+    try {
+      const updatedUser = await deleteAvatar();
+      setProfilePicture(updatedUser.profile_picture);
+    } catch (err: any) {
+      alert(err.message || "Gagal menghapus foto");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -108,12 +173,37 @@ export default function SettingsPage() {
           <section className="flex flex-col gap-6">
             <h2 className="text-xl font-heading font-bold text-text-main border-b border-gray-100 pb-4">Informasi Pribadi</h2>
             <div className="flex items-center gap-6 mb-2">
-              <div className="relative w-24 h-24 rounded-full shadow-sm border-4 border-white bg-slate-200 overflow-hidden">
-                <Image src="/default-avatar.png" alt="Profile Photo" fill sizes="96px" loading="eager" className="object-cover" />
+              <div className="relative w-24 h-24 rounded-full shadow-sm border-4 border-white bg-slate-200 overflow-hidden flex items-center justify-center">
+                {uploadingAvatar ? (
+                  <div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                ) : (
+                  <Image src={profilePicture || "/default-avatar.png"} alt="Profile Photo" fill sizes="96px" loading="eager" className="object-cover" />
+                )}
               </div>
               <div className="flex flex-col gap-2">
-                <button className="rounded-full bg-surface text-text-main px-5 py-2 text-sm font-bold hover:bg-gray-100 transition-colors border border-gray-200">Ubah Foto</button>
-                <button className="text-muted text-sm font-bold hover:text-red-500 transition-colors text-left px-2">Hapus</button>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleAvatarUpload} 
+                  accept="image/png, image/jpeg, image/webp" 
+                  className="hidden" 
+                />
+                <button 
+                  onClick={() => fileInputRef.current?.click()} 
+                  disabled={uploadingAvatar}
+                  className="rounded-full bg-surface text-text-main px-5 py-2 text-sm font-bold hover:bg-gray-100 transition-colors border border-gray-200 disabled:opacity-50"
+                >
+                  Ubah Foto
+                </button>
+                {profilePicture && (
+                  <button 
+                    onClick={handleAvatarDelete}
+                    disabled={uploadingAvatar}
+                    className="text-muted text-sm font-bold hover:text-red-500 transition-colors text-left px-2 disabled:opacity-50"
+                  >
+                    Hapus
+                  </button>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -185,11 +275,15 @@ export default function SettingsPage() {
             </h2>
             <div className="border border-red-200 rounded-[24px] p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 bg-red-50/50">
               <div className="flex flex-col gap-2">
-                <h3 className="font-bold text-text-main">Keluar dari Akun</h3>
-                <p className="text-sm text-muted max-w-md leading-relaxed">Anda akan keluar dan kembali ke halaman login.</p>
+                <h3 className="font-bold text-text-main">Hapus Akun Permanen</h3>
+                <p className="text-sm text-muted max-w-md leading-relaxed">Tindakan ini akan menghapus semua data Anda secara permanen dan tidak dapat dikembalikan lagi.</p>
               </div>
-              <button onClick={handleLogout} className="flex-shrink-0 rounded-full bg-white border border-red-500 text-red-500 px-6 py-3 text-sm font-bold hover:bg-red-500 hover:text-white transition-colors shadow-sm">
-                Keluar
+              <button 
+                onClick={handleDeleteAccount} 
+                disabled={deletingAccount}
+                className="flex-shrink-0 rounded-full bg-white border border-red-500 text-red-500 px-6 py-3 text-sm font-bold hover:bg-red-500 hover:text-white transition-colors shadow-sm disabled:opacity-50"
+              >
+                {deletingAccount ? "Menghapus..." : "Hapus Akun"}
               </button>
             </div>
           </section>
@@ -215,6 +309,37 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* DELETE ACCOUNT MODAL */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl flex flex-col gap-4 animate-scale-up">
+            <div className="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center self-center mb-2">
+              <span className="material-symbols-outlined text-[28px]">warning</span>
+            </div>
+            <h3 className="text-xl font-heading font-bold text-center text-text-main">Hapus Akun Permanen?</h3>
+            <p className="text-center text-sm text-muted leading-relaxed">
+              Tindakan ini tidak dapat dibatalkan. Semua riwayat makan, pengeluaran, dan pengaturan Anda akan hilang selamanya.
+            </p>
+            <div className="flex gap-3 mt-4">
+              <button 
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deletingAccount}
+                className="flex-1 py-3 px-4 rounded-xl font-bold text-text-main bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={confirmDeleteAccount}
+                disabled={deletingAccount}
+                className="flex-1 py-3 px-4 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 shadow-sm"
+              >
+                {deletingAccount ? "Menghapus..." : "Ya, Hapus"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

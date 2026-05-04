@@ -1,49 +1,46 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { getMeals, getMe } from "@/lib/api";
-import type { DailyMenuResponse, UserResponse } from "@/lib/api";
+import { useState, useEffect, useCallback } from "react";
+import { getMeals } from "@/lib/api";
+import type { DailyMenuResponse } from "@/lib/api";
 
 function formatDateISO(date: Date): string {
   return date.toISOString().split("T")[0];
 }
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<UserResponse | null>(null);
-  const [todayMeals, setTodayMeals] = useState<DailyMenuResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-
   const today = new Date();
   const todayStr = formatDateISO(today);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [userData, mealsData] = await Promise.all([
-          getMe(),
-          getMeals(todayStr, todayStr),
-        ]);
-        setUser(userData);
-        setTodayMeals(mealsData);
-      } catch {
-        // Silent fail — user will see empty state
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [todayStr]);
+  const [selectedDate, setSelectedDate] = useState(todayStr);
+  const [meals, setMeals] = useState<DailyMenuResponse[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Get greeting based on time
-  const hour = today.getHours();
-  const greeting = hour < 12 ? "Selamat Pagi" : hour < 17 ? "Selamat Siang" : "Selamat Malam";
+  const fetchMeals = useCallback(async (date: string) => {
+    setLoading(true);
+    try {
+      const mealsData = await getMeals(date, date);
+      setMeals(mealsData);
+    } catch {
+      setMeals([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMeals(selectedDate);
+  }, [selectedDate, fetchMeals]);
+
+  // Check if a date is the selected date
+  const isSelected = (dateStr: string) => dateStr === selectedDate;
 
   // Compute daily totals from today's meals
-  const totalCalories = todayMeals.reduce((sum, m) => sum + m.calories, 0);
-  const totalProtein = todayMeals.reduce((sum, m) => sum + m.protein, 0);
-  const totalCarbs = todayMeals.reduce((sum, m) => sum + m.carbs, 0);
-  const totalFat = todayMeals.reduce((sum, m) => sum + m.fat, 0);
+  const totalCalories = meals.reduce((sum, m) => sum + m.calories, 0);
+  const totalProtein = meals.reduce((sum, m) => sum + m.protein, 0);
+  const totalCarbs = meals.reduce((sum, m) => sum + m.carbs, 0);
+  const totalFat = meals.reduce((sum, m) => sum + m.fat, 0);
 
   // Targets (could come from preferences later)
   const targetCalories = 2000;
@@ -72,39 +69,50 @@ export default function DashboardPage() {
   const weekDays = Array.from({ length: 7 }).map((_, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
+    const dateStr = formatDateISO(d);
     return {
       name: d.toLocaleDateString("id-ID", { weekday: "short" }).toUpperCase().replace(".", ""),
       num: d.getDate(),
-      isToday: formatDateISO(d) === todayStr,
+      dateStr,
+      isToday: dateStr === todayStr,
     };
   });
 
-  if (loading) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="w-10 h-10 border-3 border-primary/30 border-t-primary rounded-full animate-spin"></div>
-      </div>
-    );
-  }
+  // Initial full-page loading state removed — loading is now inline within the meal list section
+
+  // Label for the selected day
+  const selectedDayLabel = selectedDate === todayStr
+    ? "Hari Ini"
+    : new Date(selectedDate + "T00:00:00").toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" });
 
   return (
     <div className="flex-1 overflow-y-auto overflow-x-hidden relative">
       <div className="px-6 lg:px-10 py-8 max-w-7xl mx-auto">
         <div className="mb-10">
-          <span className="text-primary font-bold text-sm tracking-widest uppercase mb-1 block">{greeting}, {user?.name || "User"} 👋</span>
           <h2 className="text-4xl md:text-5xl font-heading font-extrabold tracking-tighter text-text-main">Dashboard</h2>
         </div>
 
         {/* Strip Kalender Mingguan */}
         <section className="mb-10">
           <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar">
-            {weekDays.map((day) => (
-              <div key={day.name + day.num} className={`flex-none w-20 md:w-24 h-28 md:h-32 flex flex-col items-center justify-center rounded-2xl cursor-pointer transition-all ${day.isToday ? 'bg-primary text-white shadow-soft -mt-2 h-32 md:h-36' : 'bg-white text-muted hover:bg-gray-50 border border-gray-100'}`}>
-                <span className={`text-xs font-bold mb-1 ${day.isToday ? 'opacity-80' : ''}`}>{day.name}</span>
-                <span className="text-2xl font-heading font-extrabold">{day.num}</span>
-                {day.isToday && <div className="mt-2 w-1.5 h-1.5 bg-white rounded-full"></div>}
-              </div>
-            ))}
+            {weekDays.map((day) => {
+              const active = isSelected(day.dateStr);
+              return (
+                <button
+                  key={day.dateStr}
+                  onClick={() => setSelectedDate(day.dateStr)}
+                  className={`flex-none w-20 md:w-24 h-28 md:h-32 flex flex-col items-center justify-center rounded-2xl cursor-pointer transition-all duration-200 focus:outline-none ${
+                    active
+                      ? 'bg-primary text-white shadow-soft -mt-2 h-32 md:h-36 scale-[1.02]'
+                      : 'bg-white text-muted hover:bg-gray-50 border border-gray-100 hover:-translate-y-0.5'
+                  }`}
+                >
+                  <span className={`text-xs font-bold mb-1 ${active ? 'opacity-80' : ''}`}>{day.name}</span>
+                  <span className="text-2xl font-heading font-extrabold">{day.num}</span>
+                  {day.isToday && <div className={`mt-2 w-1.5 h-1.5 rounded-full ${active ? 'bg-white' : 'bg-primary'}`}></div>}
+                </button>
+              );
+            })}
           </div>
         </section>
 
@@ -145,15 +153,19 @@ export default function DashboardPage() {
           {/* KOLOM KANAN: Menu Makanan */}
           <div className="lg:col-span-8 space-y-6">
             <div className="px-2 mb-2">
-              <h3 className="text-2xl font-heading font-bold tracking-tight">Menu Hari Ini</h3>
+              <h3 className="text-2xl font-heading font-bold tracking-tight">Menu {selectedDayLabel}</h3>
             </div>
 
-            {todayMeals.length === 0 ? (
+            {loading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+              </div>
+            ) : meals.length === 0 ? (
               <div className="bg-white rounded-[24px] p-10 border border-gray-100 shadow-sm flex flex-col items-center text-center">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                   <span className="material-symbols-outlined text-primary text-3xl">calendar_month</span>
                 </div>
-                <h4 className="text-xl font-heading font-bold mb-2">Belum ada menu hari ini</h4>
+                <h4 className="text-xl font-heading font-bold mb-2">Belum ada menu {selectedDayLabel.toLowerCase()}</h4>
                 <p className="text-muted text-sm mb-6 max-w-sm">Buat jadwal makan mingguan di halaman Kalender untuk melihat menu harianmu di sini.</p>
                 <Link href="/calendar" className="bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-full font-bold shadow-soft transition-all hover:-translate-y-1 inline-flex items-center gap-2">
                   <span className="material-symbols-outlined text-[18px]">magic_button</span>
@@ -161,7 +173,7 @@ export default function DashboardPage() {
                 </Link>
               </div>
             ) : (
-              todayMeals.map((meal) => {
+              meals.map((meal) => {
                 const meta = mealMeta[meal.meal_type] || mealMeta.sarapan;
                 return (
                   <Link key={meal.id} href={`/recipe/${meal.id}`} className="group bg-white rounded-[24px] overflow-hidden flex flex-col md:flex-row shadow-sm hover:shadow-md transition-shadow border border-gray-100 cursor-pointer block">

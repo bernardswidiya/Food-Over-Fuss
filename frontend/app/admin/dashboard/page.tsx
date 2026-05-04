@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { logoutUser } from "@/lib/api";
 
 interface Recipe {
   id: number;
@@ -21,6 +23,8 @@ export default function AdminRecipePage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const router = useRouter();
+  const [loggingOut, setLoggingOut] = useState(false);
 
   // State untuk form resep
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -75,6 +79,17 @@ export default function AdminRecipePage() {
     setFat("");
     setIngredients([""]);
     setInstructions([""]);
+  };
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await logoutUser();
+    } catch {
+      // Error handling fallbacks if any
+    } finally {
+      router.push("/login");
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -170,9 +185,13 @@ export default function AdminRecipePage() {
           </nav>
         </div>
         <div className="p-6 border-t border-gray-50">
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-full text-red-500 hover:bg-red-50 font-bold transition-all">
-            <span className="material-symbols-outlined">logout</span>
-            <span>Keluar</span>
+          <button 
+            onClick={handleLogout} 
+            disabled={loggingOut} 
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-full text-red-500 hover:bg-red-50 font-bold transition-all disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined">{loggingOut ? "hourglass_empty" : "logout"}</span>
+            <span>{loggingOut ? "Keluar..." : "Keluar"}</span>
           </button>
         </div>
       </aside>

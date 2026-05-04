@@ -82,6 +82,32 @@ export function loginWithGoogle(): void {
   window.location.href = `${API_BASE_URL}/api/auth/google`;
 }
 
+// ── Users / Avatar ──
+
+export async function uploadAvatar(file: File): Promise<UserResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch(`${API_BASE_URL}/api/users/avatar`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+    // Note: Do not set Content-Type header for FormData, browser will set it with boundary
+  });
+  return handleResponse<UserResponse>(res);
+}
+
+export async function deleteAvatar(): Promise<UserResponse> {
+  const res = await authFetch(`${API_BASE_URL}/api/users/avatar`, {
+    method: "DELETE",
+  });
+  return handleResponse<UserResponse>(res);
+}
+
+export async function deleteAccount(): Promise<void> {
+  await authFetch(`${API_BASE_URL}/api/users/me`, { method: "DELETE" });
+}
+
 // ── Preferences (Onboarding / Settings) ──
 
 export interface PreferencesPayload {
