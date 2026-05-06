@@ -7,7 +7,7 @@ export default function Home() {
       {/* Navbar - Simplified */}
       <nav className="sticky top-0 w-full z-50 bg-white/80 backdrop-blur-md shadow-sm flex justify-between items-center px-6 md:px-12 lg:px-24 py-4 transition-all">
         <Link href="/" className="flex items-center gap-3 group">
-          <Image src="/Logo.png" alt="Food Over Fuss logo" width={32} height={32} className="h-8 w-8 object-contain transition-transform group-hover:scale-105" priority />
+          <Image src="/Logo.png" alt="Food Over Fuss logo" width={32} height={32} className="object-contain transition-transform group-hover:scale-105" priority />
           <span className="text-xl font-bold text-text-main font-heading tracking-tight">Food Over Fuss</span>
         </Link>
         <div className="flex items-center gap-3">
@@ -187,7 +187,7 @@ export default function Home() {
           
           <div className="col-span-1 md:col-span-6">
             <Link href="/" className="flex items-center gap-3 mb-6">
-              <Image src="/Logo.png" alt="Food Over Fuss logo" width={24} height={24} className="h-6 w-6 object-contain" />
+              <Image src="/Logo.png" alt="Food Over Fuss logo" width={24} height={24} className="object-contain" />
               <span className="text-xl font-bold text-text-main font-heading tracking-tight">Food Over Fuss</span>
             </Link>
             <p className="text-muted leading-relaxed mb-8 max-w-sm">

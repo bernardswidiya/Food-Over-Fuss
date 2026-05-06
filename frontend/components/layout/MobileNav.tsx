@@ -17,11 +17,11 @@ export default function MobileNav() {
         <span className="text-[10px] font-medium">Belanja</span>
       </Link>
       
-      {/* Tombol Plus Tengah Mobile */}
+      {/* Chatbot shortcut button (centre) */}
       <div className="relative -mt-8">
-        <button className="w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform">
-          <span className="material-symbols-outlined text-3xl">add</span>
-        </button>
+        <Link href="/chatbot" className="w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform">
+          <span className="material-symbols-outlined text-3xl" style={pathname === "/chatbot" ? { fontVariationSettings: "'FILL' 1" } : {}}>chat_bubble</span>
+        </Link>
       </div>
 
       <Link href="/calendar" className={`flex flex-col items-center gap-1 ${pathname === "/calendar" ? "text-primary" : "text-muted"}`}>

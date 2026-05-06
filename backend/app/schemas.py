@@ -142,3 +142,7 @@ class RecipeResponse(RecipeBase):
 
     class Config:
         from_attributes = True
+
+# --- Admin Schemas ---
+class UserRoleUpdate(BaseModel):
+    role: str

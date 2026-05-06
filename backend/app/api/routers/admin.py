@@ -2,11 +2,27 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.models import Recipe, User
-from app.schemas import RecipeCreate, RecipeUpdate, RecipeResponse
+from app.models import Recipe, User, MealPlan
+from app.schemas import RecipeCreate, RecipeUpdate, RecipeResponse, UserRoleUpdate
 from app.api.dependencies import get_db, get_admin_user
 
 router = APIRouter()
+
+@router.get("/stats")
+def get_admin_stats(
+    current_user: User = Depends(get_admin_user),
+    db: Session = Depends(get_db)
+):
+    total_users = db.query(User).count()
+    total_recipes = db.query(Recipe).count()
+    total_published_recipes = db.query(Recipe).filter(Recipe.is_published == True).count()
+    total_meal_plans = db.query(MealPlan).count()
+    return {
+        "total_users": total_users,
+        "total_recipes": total_recipes,
+        "total_published_recipes": total_published_recipes,
+        "total_meal_plans": total_meal_plans,
+    }
 
 @router.get("/recipes", response_model=List[RecipeResponse])
 def get_recipes(
@@ -74,21 +90,21 @@ def get_users(
     users = db.query(User).all()
     return [{"id": u.id, "name": u.name, "email": u.email, "role": u.role} for u in users]
 
-@router.put("/users/{user_id}/role")
+@router.patch("/users/{user_id}/role")
 def update_user_role(
     user_id: int,
-    role: str,
+    role_update: UserRoleUpdate,
     current_user: User = Depends(get_admin_user),
     db: Session = Depends(get_db)
 ):
-    """Change a user's role (admin can promote/demote users)."""
-    if role not in ("user", "admin"):
+    """Change a user's role. Admin-only."""
+    if role_update.role not in ("user", "admin"):
         raise HTTPException(status_code=400, detail="Role must be 'user' or 'admin'")
-    
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
-    user.role = role
+
+    user.role = role_update.role
     db.commit()
-    return {"message": f"User {user.email} role updated to {role}"}
+    return {"message": f"User {user.email} role updated to {role_update.role}"}
