@@ -109,6 +109,11 @@ class AggregatedGroceryItem(BaseModel):
     source_meals: List[str] = []  # e.g. ["Senin - Sarapan", "Rabu - Malam"]
 
 # --- Recipe Schemas ---
+class IngredientItem(BaseModel):
+    name: str
+    qty: float
+    unit: str
+
 class RecipeBase(BaseModel):
     name: str
     meal_type: MealTypeEnum
@@ -117,7 +122,7 @@ class RecipeBase(BaseModel):
     protein: int
     carbs: int
     fat: int
-    ingredients: List[str]
+    ingredients: List[IngredientItem]
     instructions: List[str]
     is_published: bool = False
     image_url: Optional[str] = None
@@ -133,7 +138,7 @@ class RecipeUpdate(RecipeBase):
     protein: Optional[int] = None
     carbs: Optional[int] = None
     fat: Optional[int] = None
-    ingredients: Optional[List[str]] = None
+    ingredients: Optional[List[IngredientItem]] = None
     instructions: Optional[List[str]] = None
     is_published: Optional[bool] = None
 
@@ -146,3 +151,28 @@ class RecipeResponse(RecipeBase):
 # --- Admin Schemas ---
 class UserRoleUpdate(BaseModel):
     role: str
+
+# --- Chat Schemas ---
+class ChatMessage(BaseModel):
+    role: str  # "user" or "assistant"
+    content: str
+    image_url: Optional[str] = None  # base64 data URL for vision
+
+class ChatRequest(BaseModel):
+    messages: List[ChatMessage]
+
+class ChatResponse(BaseModel):
+    message: str
+
+# --- AI / Feedback Schemas ---
+class RecipeFeedbackRequest(BaseModel):
+    recipe_id: int
+    feedback_type: str  # "regenerate" or "delete"
+
+class DetectedIngredient(BaseModel):
+    name: str
+    confidence: float
+
+class DetectIngredientsResponse(BaseModel):
+    ingredients: List[DetectedIngredient]
+    suggested_recipes: List[str] = []

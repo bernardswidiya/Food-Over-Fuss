@@ -7,6 +7,18 @@ import { logoutUser } from "@/lib/api";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
+interface IngredientItem {
+  name: string;
+  qty: number;
+  unit: string;
+}
+
+const UNITS = [
+  "gram", "kg", "ml", "liter", "butir", "buah", "biji",
+  "lembar", "batang", "siung", "ruas", "potong",
+  "sdm", "sdt", "gelas", "mangkuk", "ikat", "genggam", "secukupnya",
+];
+
 interface Recipe {
   id: number;
   name: string;
@@ -16,7 +28,7 @@ interface Recipe {
   protein: number;
   carbs: number;
   fat: number;
-  ingredients: string[];
+  ingredients: IngredientItem[];
   instructions: string[];
   is_published: boolean;
 }
@@ -100,7 +112,7 @@ export default function AdminDashboardPage() {
   const [protein, setProtein] = useState("");
   const [carbs, setCarbs] = useState("");
   const [fat, setFat] = useState("");
-  const [ingredients, setIngredients] = useState<string[]>([""]);
+  const [ingredients, setIngredients] = useState<IngredientItem[]>([{ name: "", qty: 0, unit: "gram" }]);
   const [instructions, setInstructions] = useState<string[]>([""]);
 
   // Users
@@ -171,7 +183,7 @@ export default function AdminDashboardPage() {
     setProtein("");
     setCarbs("");
     setFat("");
-    setIngredients([""]);
+    setIngredients([{ name: "", qty: 0, unit: "gram" }]);
     setInstructions([""]);
   };
 
@@ -184,7 +196,11 @@ export default function AdminDashboardPage() {
     setProtein(r.protein?.toString() || "");
     setCarbs(r.carbs?.toString() || "");
     setFat(r.fat?.toString() || "");
-    setIngredients(r.ingredients?.length ? r.ingredients : [""]);
+    setIngredients(
+      r.ingredients?.length
+        ? r.ingredients.map((i) => (typeof i === "string" ? { name: i, qty: 0, unit: "gram" } : i))
+        : [{ name: "", qty: 0, unit: "gram" }]
+    );
     setInstructions(r.instructions?.length ? r.instructions : [""]);
     setIsPublished(r.is_published || false);
     setActiveSection("recipes");
@@ -212,7 +228,7 @@ export default function AdminDashboardPage() {
       protein: Number(protein) || 0,
       carbs: Number(carbs) || 0,
       fat: Number(fat) || 0,
-      ingredients: ingredients.filter((i) => i.trim() !== ""),
+      ingredients: ingredients.filter((i) => i.name.trim() !== ""),
       instructions: instructions.filter((i) => i.trim() !== ""),
       is_published: isPublished,
     };
@@ -245,6 +261,17 @@ export default function AdminDashboardPage() {
   };
   const removeField = (setter: React.Dispatch<React.SetStateAction<string[]>>, arr: string[], idx: number) =>
     setter(arr.filter((_, i) => i !== idx));
+
+  const addIngredient = () =>
+    setIngredients((prev) => [...prev, { name: "", qty: 0, unit: "gram" }]);
+  const updateIngredient = (idx: number, field: keyof IngredientItem, value: string | number) =>
+    setIngredients((prev) => {
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], [field]: value };
+      return updated;
+    });
+  const removeIngredient = (idx: number) =>
+    setIngredients((prev) => prev.filter((_, i) => i !== idx));
 
   const filteredRecipes = recipes.filter((r) =>
     r.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -731,18 +758,43 @@ export default function AdminDashboardPage() {
 
                       <div className="space-y-2">
                         <label className="text-sm font-bold text-muted ml-1">Bahan-bahan</label>
+                        <div className="grid grid-cols-[1fr_72px_112px_36px] gap-1.5 mb-1">
+                          <span className="text-[10px] font-bold text-muted ml-1">Nama Bahan</span>
+                          <span className="text-[10px] font-bold text-muted ml-1">Jumlah</span>
+                          <span className="text-[10px] font-bold text-muted ml-1">Satuan</span>
+                          <span />
+                        </div>
                         {ingredients.map((ing, idx) => (
-                          <div key={idx} className="flex gap-2">
+                          <div key={idx} className="grid grid-cols-[1fr_72px_112px_36px] gap-1.5 items-center">
                             <input
-                              value={ing}
-                              onChange={(e) => updateField(setIngredients, ingredients, idx, e.target.value)}
-                              className="flex-1 bg-surface h-10 rounded-xl px-4 border-none focus:ring-2 focus:ring-primary/20 text-sm"
-                              placeholder={`Bahan ke-${idx + 1}`}
+                              value={ing.name}
+                              onChange={(e) => updateIngredient(idx, "name", e.target.value)}
+                              className="bg-surface h-10 rounded-xl px-3 border-none focus:ring-2 focus:ring-primary/20 text-sm"
+                              placeholder="cth: Telur"
                             />
+                            <input
+                              type="number"
+                              value={ing.qty || ""}
+                              onChange={(e) => updateIngredient(idx, "qty", Number(e.target.value))}
+                              disabled={ing.unit === "secukupnya"}
+                              min="0"
+                              step="any"
+                              className="bg-surface h-10 rounded-xl px-3 border-none focus:ring-2 focus:ring-primary/20 text-sm disabled:opacity-40"
+                              placeholder="0"
+                            />
+                            <select
+                              value={ing.unit}
+                              onChange={(e) => updateIngredient(idx, "unit", e.target.value)}
+                              className="bg-surface h-10 rounded-xl px-3 border-none focus:ring-2 focus:ring-primary/20 text-sm"
+                            >
+                              {UNITS.map((u) => (
+                                <option key={u} value={u}>{u}</option>
+                              ))}
+                            </select>
                             <button
                               type="button"
-                              onClick={() => removeField(setIngredients, ingredients, idx)}
-                              className="text-red-400 hover:text-red-500 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                              onClick={() => removeIngredient(idx)}
+                              className="text-red-400 hover:text-red-500 p-1.5 hover:bg-red-50 rounded-lg transition-colors"
                             >
                               <span className="material-symbols-outlined text-sm">close</span>
                             </button>
@@ -750,7 +802,7 @@ export default function AdminDashboardPage() {
                         ))}
                         <button
                           type="button"
-                          onClick={() => addField(setIngredients, ingredients)}
+                          onClick={addIngredient}
                           className="text-primary text-xs font-bold flex items-center gap-1 hover:underline mt-1"
                         >
                           <span className="material-symbols-outlined text-sm">add_circle</span>

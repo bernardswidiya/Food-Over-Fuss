@@ -103,8 +103,8 @@ export default function DashboardPage() {
                   onClick={() => setSelectedDate(day.dateStr)}
                   className={`flex-none w-20 md:w-24 h-28 md:h-32 flex flex-col items-center justify-center rounded-2xl cursor-pointer transition-all duration-200 focus:outline-none ${
                     active
-                      ? 'bg-primary text-white shadow-soft -mt-2 h-32 md:h-36 scale-[1.02]'
-                      : 'bg-white text-muted hover:bg-gray-50 border border-gray-100 hover:-translate-y-0.5'
+                      ? 'bg-primary text-white shadow-md -mt-2 h-32 md:h-36 scale-[1.02]'
+                      : 'bg-white text-muted hover:bg-gray-50 border border-gray-200 shadow-sm hover:-translate-y-1 hover:shadow-md'
                   }`}
                 >
                   <span className={`text-xs font-bold mb-1 ${active ? 'opacity-80' : ''}`}>{day.name}</span>
@@ -121,7 +121,7 @@ export default function DashboardPage() {
           
           {/* KOLOM KIRI: Statistik Makro */}
           <div className="lg:col-span-4 flex flex-col gap-8">
-            <div className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100">
+            <div className="bg-white p-8 rounded-4xl shadow-md border border-gray-200">
               <h3 className="text-xl font-heading font-bold mb-8">Nutrisi Harian</h3>
               <div className="flex items-center justify-center mb-10 relative">
                 <svg className="w-48 h-48 transform -rotate-90">
@@ -161,7 +161,7 @@ export default function DashboardPage() {
                 <div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin"></div>
               </div>
             ) : meals.length === 0 ? (
-              <div className="bg-white rounded-[24px] p-10 border border-gray-100 shadow-sm flex flex-col items-center text-center">
+              <div className="bg-white rounded-3xl p-10 border border-gray-200 shadow-md flex flex-col items-center text-center">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                   <span className="material-symbols-outlined text-primary text-3xl">calendar_month</span>
                 </div>
@@ -176,7 +176,7 @@ export default function DashboardPage() {
               meals.map((meal) => {
                 const meta = mealMeta[meal.meal_type] || mealMeta.sarapan;
                 return (
-                  <Link key={meal.id} href={`/recipe/${meal.id}`} className="group bg-white rounded-[24px] overflow-hidden flex flex-col md:flex-row shadow-sm hover:shadow-md transition-shadow border border-gray-100 cursor-pointer block">
+                  <Link key={meal.id} href={`/recipe/${meal.id}`} className="group bg-white rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-md hover:shadow-lg transition-all border border-gray-200 cursor-pointer hover:-translate-y-0.5">
                     <div className="md:w-1/3 h-48 md:h-auto overflow-hidden bg-slate-100 flex items-center justify-center">
                       <span className="material-symbols-outlined text-6xl text-slate-300">{meta.icon}</span>
                     </div>
@@ -187,13 +187,13 @@ export default function DashboardPage() {
                         </div>
                         <h4 className="text-2xl font-heading font-bold mb-2 group-hover:text-primary transition-colors">{meal.recipe_name}</h4>
                       </div>
-                      <div className="mt-6 flex items-center justify-between border-t border-gray-100 pt-4">
+                      <div className="mt-6 flex items-center justify-between border-t border-gray-200 pt-4">
                         <div className="flex gap-4 md:gap-6">
                           <div className="flex flex-col"><span className="text-[10px] text-muted uppercase font-bold">Protein</span><span className="text-text-main font-bold">{meal.protein}g</span></div>
                           <div className="flex flex-col"><span className="text-[10px] text-muted uppercase font-bold">Karbo</span><span className="text-text-main font-bold">{meal.carbs}g</span></div>
                           <div className="flex flex-col"><span className="text-[10px] text-muted uppercase font-bold">Kalori</span><span className="text-primary font-bold">{meal.calories} kkal</span></div>
                         </div>
-                        <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center text-muted group-hover:bg-primary group-hover:text-white transition-all"><span className="material-symbols-outlined">chevron_right</span></div>
+                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-muted group-hover:bg-primary group-hover:text-white transition-all"><span className="material-symbols-outlined">chevron_right</span></div>
                       </div>
                     </div>
                   </Link>

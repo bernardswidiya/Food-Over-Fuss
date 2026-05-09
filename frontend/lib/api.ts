@@ -196,3 +196,23 @@ export async function getGroceries(startDate: string, endDate: string, sortBy: s
   const res = await authFetch(`${API_BASE_URL}/api/groceries?start_date=${startDate}&end_date=${endDate}&sort_by=${sortBy}`);
   return handleResponse<AggregatedGroceryItem[]>(res);
 }
+
+// ── Chat ──
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+  image_url?: string;
+}
+
+export interface ChatResponse {
+  message: string;
+}
+
+export async function sendChatMessage(messages: ChatMessage[]): Promise<ChatResponse> {
+  const res = await authFetch(`${API_BASE_URL}/api/chat/`, {
+    method: "POST",
+    body: JSON.stringify({ messages }),
+  });
+  return handleResponse<ChatResponse>(res);
+}

@@ -1,11 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException
+import json
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import date, timedelta
 from app.models import MealPlan, DailyMenu, User, Recipe
-from app.schemas import MealPlanResponse, MealGenerateRequest, DailyMenuResponse
+from app.schemas import (
+    MealPlanResponse, MealGenerateRequest, DailyMenuResponse,
+    RecipeFeedbackRequest, DetectIngredientsResponse, DetectedIngredient,
+)
 from app.api.dependencies import get_db, get_current_user
-import random
+from app.ai.recommendation import apply_penalty, recommend_recipe_for_slot
 
 router = APIRouter()
 
@@ -14,7 +18,6 @@ MEAL_TYPES = ["sarapan", "siang", "malam"]
 
 @router.get("/", response_model=List[DailyMenuResponse])
 def get_meals(start_date: date, end_date: date, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Get all daily menus for the current user within date range."""
     menus = db.query(DailyMenu).join(MealPlan).filter(
         MealPlan.user_id == current_user.id,
         DailyMenu.date >= start_date,
@@ -25,9 +28,6 @@ def get_meals(start_date: date, end_date: date, current_user: User = Depends(get
 
 @router.post("/generate-week", response_model=MealPlanResponse)
 def generate_weekly_meals(req: MealGenerateRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Generate meal plan for a date range using published recipes."""
-    
-    # 1. Delete existing meal plans that overlap with this range
     existing_plans = db.query(MealPlan).filter(
         MealPlan.user_id == current_user.id,
         MealPlan.start_date <= req.end_date,
@@ -36,28 +36,14 @@ def generate_weekly_meals(req: MealGenerateRequest, current_user: User = Depends
     for plan in existing_plans:
         db.delete(plan)
     db.flush()
-    
-    # 2. Fetch published recipes
+
     published_recipes = db.query(Recipe).filter(Recipe.is_published == True).all()
-    
     if not published_recipes:
         raise HTTPException(
             status_code=400,
             detail="Belum ada resep yang di-publish oleh Admin. Hubungi Admin untuk menambahkan resep."
         )
-    
-    # Group recipes by meal_type
-    recipes_by_type = {"sarapan": [], "siang": [], "malam": []}
-    for r in published_recipes:
-        if r.meal_type.value in recipes_by_type:
-            recipes_by_type[r.meal_type.value].append(r)
-    
-    # Fallback: if a meal type has no recipes, use all recipes
-    for mt in MEAL_TYPES:
-        if not recipes_by_type[mt]:
-            recipes_by_type[mt] = published_recipes
-    
-    # 3. Create meal plan
+
     meal_plan = MealPlan(
         user_id=current_user.id,
         start_date=req.start_date,
@@ -65,18 +51,17 @@ def generate_weekly_meals(req: MealGenerateRequest, current_user: User = Depends
     )
     db.add(meal_plan)
     db.flush()
-    
-    # 4. Generate daily menus
+
     num_days = (req.end_date - req.start_date).days + 1
     for day_offset in range(num_days):
         current_date = req.start_date + timedelta(days=day_offset)
-        
         for meal_type in MEAL_TYPES:
-            recipe = random.choice(recipes_by_type[meal_type])
-            
-            # Build ingredients string from recipe
-            ingredients_str = "\n".join(recipe.ingredients) if recipe.ingredients else ""
-            
+            recipe = recommend_recipe_for_slot(db, current_user.id, meal_type)
+            if recipe is None:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Tidak ada resep tersedia untuk slot {meal_type}."
+                )
             menu = DailyMenu(
                 meal_plan_id=meal_plan.id,
                 date=current_date,
@@ -86,65 +71,116 @@ def generate_weekly_meals(req: MealGenerateRequest, current_user: User = Depends
                 protein=recipe.protein,
                 carbs=recipe.carbs,
                 fat=recipe.fat,
-                ingredients=ingredients_str,
+                ingredients=json.dumps(recipe.ingredients) if recipe.ingredients else "[]",
                 recipe_id=recipe.id,
                 is_cleared=False
             )
             db.add(menu)
-    
+
     db.commit()
     db.refresh(meal_plan)
     return meal_plan
 
 @router.put("/{menu_id}/regenerate", response_model=DailyMenuResponse)
 def regenerate_meal(menu_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Regenerate a single meal slot with a different recipe."""
     menu = db.query(DailyMenu).join(MealPlan).filter(
         DailyMenu.id == menu_id,
         MealPlan.user_id == current_user.id
     ).first()
     if not menu:
         raise HTTPException(status_code=404, detail="Menu not found")
-    
-    # Find alternative recipe
-    published = db.query(Recipe).filter(
-        Recipe.is_published == True,
-        Recipe.meal_type == menu.meal_type
-    ).all()
-    
-    if not published:
-        published = db.query(Recipe).filter(Recipe.is_published == True).all()
-    
-    if not published:
+
+    # Penalise the current recipe before swapping
+    if menu.recipe_id is not None:
+        apply_penalty(db, current_user.id, menu.recipe_id)
+
+    recipe = recommend_recipe_for_slot(
+        db, current_user.id, menu.meal_type, exclude_recipe_id=menu.recipe_id
+    )
+    if recipe is None:
         raise HTTPException(status_code=400, detail="Tidak ada resep alternatif")
-    
-    # Try to pick a different recipe
-    alternatives = [r for r in published if r.id != menu.recipe_id]
-    recipe = random.choice(alternatives) if alternatives else random.choice(published)
-    
+
     menu.recipe_name = recipe.name
     menu.calories = recipe.calories
     menu.protein = recipe.protein
     menu.carbs = recipe.carbs
     menu.fat = recipe.fat
-    menu.ingredients = "\n".join(recipe.ingredients) if recipe.ingredients else ""
+    menu.ingredients = json.dumps(recipe.ingredients) if recipe.ingredients else "[]"
     menu.recipe_id = recipe.id
     menu.is_cleared = False
-    
+
     db.commit()
     db.refresh(menu)
     return menu
 
 @router.delete("/{menu_id}")
 def clear_meal(menu_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Clear (soft-delete) a single meal slot."""
     menu = db.query(DailyMenu).join(MealPlan).filter(
         DailyMenu.id == menu_id,
         MealPlan.user_id == current_user.id
     ).first()
     if not menu:
         raise HTTPException(status_code=404, detail="Menu not found")
-    
+
+    # Penalise the cleared recipe
+    if menu.recipe_id is not None:
+        apply_penalty(db, current_user.id, menu.recipe_id)
+
     menu.is_cleared = True
     db.commit()
     return {"message": "Menu cleared successfully"}
+
+@router.post("/feedback")
+def submit_feedback(req: RecipeFeedbackRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Explicit feedback: penalise a recipe the user dislikes."""
+    recipe = db.query(Recipe).filter(Recipe.id == req.recipe_id).first()
+    if not recipe:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+
+    if req.feedback_type not in ("regenerate", "delete"):
+        raise HTTPException(status_code=400, detail="feedback_type must be 'regenerate' or 'delete'")
+
+    interaction = apply_penalty(db, current_user.id, req.recipe_id)
+    return {
+        "message": "Feedback recorded",
+        "recipe_id": req.recipe_id,
+        "new_affinity_score": interaction.affinity_score,
+        "penalty_count": interaction.penalty_count,
+    }
+
+@router.post("/detect-ingredients", response_model=DetectIngredientsResponse)
+async def detect_ingredients(file: UploadFile = File(...), current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Snap-to-Recipe: detect ingredients from a food photo using MobileNetV2."""
+    contents = await file.read()
+    detected: list[DetectedIngredient] = []
+
+    try:
+        import numpy as np
+        from PIL import Image as PILImage
+        import io
+
+        try:
+            import tensorflow as tf  # type: ignore
+
+            img = PILImage.open(io.BytesIO(contents)).convert("RGB").resize((224, 224))
+            arr = np.array(img, dtype=np.float32)
+            arr = tf.keras.applications.mobilenet_v2.preprocess_input(arr)
+            arr = np.expand_dims(arr, axis=0)
+
+            model = tf.keras.applications.MobileNetV2(weights="imagenet", include_top=True)
+            preds = model.predict(arr, verbose=0)
+            top = tf.keras.applications.mobilenet_v2.decode_predictions(preds, top=5)[0]
+
+            detected = [
+                DetectedIngredient(name=label.replace("_", " "), confidence=round(float(score), 3))
+                for _, label, score in top
+            ]
+        except ImportError:
+            # TensorFlow not installed — return placeholder
+            detected = [DetectedIngredient(name="Fitur ini memerlukan TensorFlow", confidence=0.0)]
+
+    except Exception:
+        detected = [DetectedIngredient(name="Gagal memproses gambar", confidence=0.0)]
+
+    recipe_names = [r.name for r in db.query(Recipe).filter(Recipe.is_published == True).limit(3).all()]
+    return DetectIngredientsResponse(ingredients=detected, suggested_recipes=recipe_names)

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, Boolean, Date, Enum as SQLEnum, JSON
+from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, Boolean, Date, DateTime, Enum as SQLEnum, JSON
 from sqlalchemy.orm import relationship
 import enum
 from .database import Base
@@ -22,6 +22,7 @@ class User(Base):
     preference = relationship("Preference", back_populates="owner", uselist=False, cascade="all, delete-orphan")
     meal_plans = relationship("MealPlan", back_populates="owner", cascade="all, delete-orphan")
     grocery_items = relationship("GroceryItem", back_populates="owner", cascade="all, delete-orphan")
+    recipe_interactions = relationship("UserRecipeInteraction", back_populates="user", cascade="all, delete-orphan")
 
 class Preference(Base):
     __tablename__ = "preferences"
@@ -93,3 +94,16 @@ class Recipe(Base):
     instructions = Column(JSON, default=list)
     is_published = Column(Boolean, default=False)
     image_url = Column(String, nullable=True)
+
+class UserRecipeInteraction(Base):
+    __tablename__ = "user_recipe_interactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    recipe_id = Column(Integer, ForeignKey("recipes.id"), index=True)
+    affinity_score = Column(Float, default=1.0)
+    penalty_count = Column(Integer, default=0)
+    last_penalized_at = Column(DateTime, nullable=True)
+
+    user = relationship("User", back_populates="recipe_interactions")
+    recipe = relationship("Recipe")

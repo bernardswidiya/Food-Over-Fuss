@@ -89,7 +89,10 @@ export default function TopHeader() {
               <><span className="text-primary">{firstName}&apos;s</span> Pantry</>
             )}
           </h1>
-          <h1 className="text-xl font-heading font-bold text-text-main md:hidden">Food Over Fuss</h1>
+          <div className="flex items-center gap-2 md:hidden">
+              <Image src="/Logo.png" alt="Food Over Fuss" width={24} height={24} className="object-contain" />
+              <h1 className="text-xl font-heading font-bold text-text-main">Food Over Fuss</h1>
+            </div>
         </>
       );
     }
@@ -104,18 +107,21 @@ export default function TopHeader() {
             <>{mounted ? greeting : "Selamat datang"}, <span className="text-primary">{firstName}!</span> 👋</>
           )}
         </h1>
-        <h1 className="text-xl font-heading font-bold text-text-main md:hidden">Food Over Fuss</h1>
+        <div className="flex items-center gap-2 md:hidden">
+            <Image src="/Logo.png" alt="Food Over Fuss" width={24} height={24} className="object-contain" />
+            <h1 className="text-xl font-heading font-bold text-text-main">Food Over Fuss</h1>
+          </div>
       </>
     );
   };
 
   return (
-    <header className="sticky top-0 w-full z-30 bg-white/80 backdrop-blur-md flex justify-between items-center px-8 py-4 border-b border-gray-100 shrink-0">
+    <header className="sticky top-0 w-full z-30 bg-white/95 backdrop-blur-md flex justify-between items-center px-8 py-4 border-b border-gray-200 shadow-sm shrink-0">
       <div className="flex items-center gap-4">
         {/* Hamburger Menu Toggle (Desktop only since mobile nav is at bottom) */}
         <button 
           onClick={toggleSidebar} 
-          className="hidden md:flex p-2 text-muted hover:bg-surface rounded-full transition-colors"
+          className="hidden md:flex p-2 text-muted hover:bg-gray-100 rounded-full transition-colors"
         >
           <span className="material-symbols-outlined">menu</span>
         </button>
@@ -123,23 +129,23 @@ export default function TopHeader() {
       </div>
       
       <div className="flex items-center gap-4 relative" ref={dropdownRef}>
-        <button className="p-2 text-muted hover:bg-surface rounded-full transition-colors">
+        <button className="p-2 text-muted hover:bg-gray-100 rounded-full transition-colors">
           <span className="material-symbols-outlined">notifications</span>
         </button>
         <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="w-10 h-10 rounded-full overflow-hidden border-2 border-transparent hover:border-primary transition-all focus:outline-none relative bg-slate-200">
           <Image src={user?.profile_picture || "/default-avatar.png"} alt="Profile" fill sizes="40px" className="object-cover" />
         </button>
         {isProfileOpen && (
-          <div className="absolute top-14 right-0 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 animate-fade-slide-up">
-            <div className="px-4 py-2 border-b border-gray-100 mb-1">
+          <div className="absolute top-14 right-0 w-48 bg-white rounded-2xl shadow-2xl border border-gray-200 py-2 z-50 animate-fade-slide-up">
+            <div className="px-4 py-2 border-b border-gray-200 mb-1">
               <p className="text-sm font-bold text-text-main truncate">{user?.name || "User"}</p>
               <p className="text-xs text-muted truncate">{user?.email || ""}</p>
             </div>
-            <Link href="/settings" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm text-text-main hover:bg-surface transition-colors">
+            <Link href="/settings" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm text-text-main hover:bg-gray-100 transition-colors">
               <span className="material-symbols-outlined text-[18px]">manage_accounts</span>
               Profil & Preferensi
             </Link>
-            <div className="my-1 border-t border-gray-100"></div>
+            <div className="my-1 border-t border-gray-200"></div>
             <button
               onClick={handleLogout}
               disabled={loggingOut}

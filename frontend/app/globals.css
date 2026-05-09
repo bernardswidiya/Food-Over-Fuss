@@ -3,11 +3,11 @@
 @theme {
   --color-primary: #05d66a;
   --color-primary-hover: #10e377;
-  --color-background-light: #f5f8f7;
+  --color-background-light: #e8eeeb;
   --color-background-dark: #0f2319;
-  --color-surface: #F8FAF9;
+  --color-surface: #f4f7f5;
   --color-text-main: #1C2B23;
-  --color-muted: #94A3B8;
+  --color-muted: #6b7f74;
   --color-accent: #FF9F43;
 
   --font-display: "Inter", sans-serif;
@@ -16,7 +16,7 @@
 
   --radius-card: 24px;
 
-  --shadow-soft: 0 20px 40px -10px rgba(5, 213, 106, 0.08);
+  --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
 body {
