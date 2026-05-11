@@ -1,10 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException
+import os
+import cloudinary
+import cloudinary.uploader
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List
 
 from app.models import Recipe, User, MealPlan
 from app.schemas import RecipeCreate, RecipeUpdate, RecipeResponse, UserRoleUpdate
 from app.api.dependencies import get_db, get_admin_user
+
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    secure=True
+)
 
 router = APIRouter()
 
@@ -33,6 +43,24 @@ def get_recipes(
 ):
     recipes = db.query(Recipe).offset(skip).limit(limit).all()
     return recipes
+
+@router.post("/recipes/upload-image")
+async def upload_recipe_image(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File harus berupa gambar")
+    try:
+        result = cloudinary.uploader.upload(
+            file.file,
+            folder="food_over_fuss/recipes",
+            transformation=[{"width": 800, "height": 600, "crop": "fill"}],
+        )
+        return {"image_url": result.get("secure_url")}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Gagal upload gambar: {str(e)}")
 
 @router.post("/recipes", response_model=RecipeResponse)
 def create_recipe(

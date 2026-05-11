@@ -197,6 +197,19 @@ export async function getGroceries(startDate: string, endDate: string, sortBy: s
   return handleResponse<AggregatedGroceryItem[]>(res);
 }
 
+// ── Admin ──
+
+export async function uploadRecipeImage(file: File): Promise<{ image_url: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${API_BASE_URL}/api/admin/recipes/upload-image`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+  return handleResponse<{ image_url: string }>(res);
+}
+
 // ── Chat ──
 
 export interface ChatMessage {

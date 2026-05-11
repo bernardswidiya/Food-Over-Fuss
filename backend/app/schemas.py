@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, List
 from datetime import date
 from .models import MealTypeEnum
@@ -126,6 +126,18 @@ class RecipeBase(BaseModel):
     instructions: List[str]
     is_published: bool = False
     image_url: Optional[str] = None
+
+    @field_validator("ingredients", mode="before")
+    @classmethod
+    def coerce_ingredients(cls, v: object) -> object:
+        if v is None:
+            return []
+        if isinstance(v, list):
+            return [
+                {"name": item, "qty": 0, "unit": ""} if isinstance(item, str) else item
+                for item in v
+            ]
+        return v
 
 class RecipeCreate(RecipeBase):
     pass

@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { logoutUser } from "@/lib/api";
+import { logoutUser, uploadRecipeImage } from "@/lib/api";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -31,6 +31,7 @@ interface Recipe {
   ingredients: IngredientItem[];
   instructions: string[];
   is_published: boolean;
+  image_url?: string | null;
 }
 
 interface AdminStats {
@@ -102,8 +103,7 @@ export default function AdminDashboardPage() {
   const [recipesLoading, setRecipesLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Recipe form state
-  const [editingId, setEditingId] = useState<number | null>(null);
+  // Add-recipe form state (bottom form, always POST)
   const [recipeName, setRecipeName] = useState("");
   const [mealType, setMealType] = useState("sarapan");
   const [isPublished, setIsPublished] = useState(false);
@@ -113,7 +113,31 @@ export default function AdminDashboardPage() {
   const [carbs, setCarbs] = useState("");
   const [fat, setFat] = useState("");
   const [ingredients, setIngredients] = useState<IngredientItem[]>([{ name: "", qty: 0, unit: "gram" }]);
-  const [instructions, setInstructions] = useState<string[]>([""]);
+  const [instructions, setInstructions] = useState<string[]>([""])
+  const [imageUrl, setImageUrl] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  // Edit modal state (separate from add form)
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editModalId, setEditModalId] = useState<number | null>(null);
+  const [mName, setMName] = useState("");
+  const [mMealType, setMMealType] = useState("sarapan");
+  const [mIsPublished, setMIsPublished] = useState(false);
+  const [mPrepTime, setMPrepTime] = useState("");
+  const [mCalories, setMCalories] = useState("");
+  const [mProtein, setMProtein] = useState("");
+  const [mCarbs, setMCarbs] = useState("");
+  const [mFat, setMFat] = useState("");
+  const [mIngredients, setMIngredients] = useState<IngredientItem[]>([]);
+  const [mInstructions, setMInstructions] = useState<string[]>([]);
+  const [mImageUrl, setMImageUrl] = useState("");
+  const [mUploadingImage, setMUploadingImage] = useState(false);
+  const mImageInputRef = useRef<HTMLInputElement>(null);
+
+  // Delete confirmation state
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Users
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -174,7 +198,6 @@ export default function AdminDashboardPage() {
   };
 
   const resetForm = () => {
-    setEditingId(null);
     setRecipeName("");
     setMealType("sarapan");
     setIsPublished(false);
@@ -185,37 +208,78 @@ export default function AdminDashboardPage() {
     setFat("");
     setIngredients([{ name: "", qty: 0, unit: "gram" }]);
     setInstructions([""]);
+    setImageUrl("");
   };
 
   const handleEdit = (r: Recipe) => {
-    setEditingId(r.id);
-    setRecipeName(r.name || "");
-    setMealType(r.meal_type || "sarapan");
-    setPrepTime(r.prep_time?.toString() || "");
-    setCalories(r.calories?.toString() || "");
-    setProtein(r.protein?.toString() || "");
-    setCarbs(r.carbs?.toString() || "");
-    setFat(r.fat?.toString() || "");
-    setIngredients(
+    setEditModalId(r.id);
+    setMName(r.name || "");
+    setMMealType(r.meal_type || "sarapan");
+    setMPrepTime(r.prep_time?.toString() || "");
+    setMCalories(r.calories?.toString() || "");
+    setMProtein(r.protein?.toString() || "");
+    setMCarbs(r.carbs?.toString() || "");
+    setMFat(r.fat?.toString() || "");
+    setMIngredients(
       r.ingredients?.length
         ? r.ingredients.map((i) => (typeof i === "string" ? { name: i, qty: 0, unit: "gram" } : i))
         : [{ name: "", qty: 0, unit: "gram" }]
     );
-    setInstructions(r.instructions?.length ? r.instructions : [""]);
-    setIsPublished(r.is_published || false);
-    setActiveSection("recipes");
-    setTimeout(() => document.getElementById("recipe-form")?.scrollIntoView({ behavior: "smooth" }), 100);
+    setMInstructions(r.instructions?.length ? r.instructions : [""]);
+    setMIsPublished(r.is_published || false);
+    setMImageUrl(r.image_url || "");
+    setEditModalOpen(true);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Yakin ingin menghapus resep ini?")) return;
+  const closeEditModal = () => {
+    setEditModalOpen(false);
+    setEditModalId(null);
+  };
+
+  const handleModalSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editModalId) return;
+    const payload = {
+      name: mName,
+      meal_type: mMealType,
+      prep_time: Number(mPrepTime) || 0,
+      calories: Number(mCalories) || 0,
+      protein: Number(mProtein) || 0,
+      carbs: Number(mCarbs) || 0,
+      fat: Number(mFat) || 0,
+      ingredients: mIngredients.filter((i) => i.name.trim() !== ""),
+      instructions: mInstructions.filter((i) => i.trim() !== ""),
+      is_published: mIsPublished,
+      image_url: mImageUrl || null,
+    };
     try {
-      const res = await fetch(`http://localhost:8000/api/admin/recipes/${id}`, {
+      const res = await fetch(`http://localhost:8000/api/admin/recipes/${editModalId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) { closeEditModal(); fetchRecipes(); fetchStats(); }
+      else alert("Gagal menyimpan perubahan.");
+    } catch { /* silently fail */ }
+  };
+
+  const handleDeleteRequest = (id: number) => setDeleteConfirmId(id);
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirmId) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`http://localhost:8000/api/admin/recipes/${deleteConfirmId}`, {
         method: "DELETE",
         credentials: "include",
       });
       if (res.ok) { fetchRecipes(); fetchStats(); }
     } catch { /* silently fail */ }
+    finally {
+      setDeleting(false);
+      setDeleteConfirmId(null);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -231,13 +295,11 @@ export default function AdminDashboardPage() {
       ingredients: ingredients.filter((i) => i.name.trim() !== ""),
       instructions: instructions.filter((i) => i.trim() !== ""),
       is_published: isPublished,
+      image_url: imageUrl || null,
     };
     try {
-      const url = editingId
-        ? `http://localhost:8000/api/admin/recipes/${editingId}`
-        : "http://localhost:8000/api/admin/recipes";
-      const res = await fetch(url, {
-        method: editingId ? "PUT" : "POST",
+      const res = await fetch("http://localhost:8000/api/admin/recipes", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(payload),
@@ -272,6 +334,52 @@ export default function AdminDashboardPage() {
     });
   const removeIngredient = (idx: number) =>
     setIngredients((prev) => prev.filter((_, i) => i !== idx));
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Ukuran file maksimal 5MB");
+      return;
+    }
+    setUploadingImage(true);
+    try {
+      const { image_url } = await uploadRecipeImage(file);
+      setImageUrl(image_url);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Gagal mengunggah gambar");
+    } finally {
+      setUploadingImage(false);
+      if (imageInputRef.current) imageInputRef.current.value = "";
+    }
+  };
+
+  const addMIngredient = () =>
+    setMIngredients((prev) => [...prev, { name: "", qty: 0, unit: "gram" }]);
+  const updateMIngredient = (idx: number, field: keyof IngredientItem, value: string | number) =>
+    setMIngredients((prev) => {
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], [field]: value };
+      return updated;
+    });
+  const removeMIngredient = (idx: number) =>
+    setMIngredients((prev) => prev.filter((_, i) => i !== idx));
+
+  const handleMImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { alert("Ukuran file maksimal 5MB"); return; }
+    setMUploadingImage(true);
+    try {
+      const { image_url } = await uploadRecipeImage(file);
+      setMImageUrl(image_url);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Gagal mengunggah gambar");
+    } finally {
+      setMUploadingImage(false);
+      if (mImageInputRef.current) mImageInputRef.current.value = "";
+    }
+  };
 
   const filteredRecipes = recipes.filter((r) =>
     r.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -590,8 +698,8 @@ export default function AdminDashboardPage() {
                 </div>
 
                 {/* Recipe table */}
-                <div className="bg-white rounded-3xl border border-gray-100 shadow-soft overflow-hidden">
-                  <div className="p-5 border-b border-gray-50 flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
+                <div className="bg-white rounded-3xl border border-gray-100 shadow-soft overflow-hidden flex flex-col max-h-130">
+                  <div className="p-5 border-b border-gray-50 flex flex-col sm:flex-row gap-3 sm:items-center justify-between shrink-0">
                     <h2 className="text-lg font-heading font-bold">Daftar Resep</h2>
                     <div className="relative">
                       <input
@@ -606,7 +714,7 @@ export default function AdminDashboardPage() {
                       </span>
                     </div>
                   </div>
-                  <div className="overflow-x-auto">
+                  <div className="overflow-auto flex-1">
                     <table className="w-full text-left">
                       <thead>
                         <tr className="bg-surface text-[10px] font-bold text-muted uppercase tracking-widest">
@@ -662,7 +770,7 @@ export default function AdminDashboardPage() {
                                   <span className="material-symbols-outlined text-lg">edit</span>
                                 </button>
                                 <button
-                                  onClick={() => handleDelete(recipe.id)}
+                                  onClick={() => handleDeleteRequest(recipe.id)}
                                   className="text-muted hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
                                 >
                                   <span className="material-symbols-outlined text-lg">delete</span>
@@ -679,9 +787,7 @@ export default function AdminDashboardPage() {
                 {/* Recipe form */}
                 <div id="recipe-form" className="bg-white rounded-3xl border border-gray-100 shadow-soft p-6 md:p-10">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 border-b border-gray-50 pb-6">
-                    <h2 className="text-2xl font-heading font-bold">
-                      {editingId ? "Edit Resep" : "Input Resep Baru"}
-                    </h2>
+                    <h2 className="text-2xl font-heading font-bold">Input Resep Baru</h2>
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-bold text-muted">Publish ke AI?</span>
                       <button
@@ -813,12 +919,57 @@ export default function AdminDashboardPage() {
 
                     {/* Right column */}
                     <div className="space-y-5">
-                      <div className="w-full h-44 border-2 border-dashed border-gray-200 rounded-3xl flex flex-col items-center justify-center bg-surface hover:bg-gray-50 transition-colors cursor-pointer group">
-                        <span className="material-symbols-outlined text-4xl text-gray-300 group-hover:text-primary mb-2">
-                          image_search
-                        </span>
-                        <span className="text-xs font-bold text-muted">Upload Foto Resep</span>
-                        <span className="text-[10px] text-gray-300 mt-1">PNG, JPG max 5MB</span>
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-muted ml-1">Foto Resep</label>
+                        <input
+                          ref={imageInputRef}
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          className="hidden"
+                          onChange={handleImageUpload}
+                        />
+                        {imageUrl ? (
+                          <div className="relative w-full h-44 rounded-3xl overflow-hidden border border-gray-200 bg-surface group">
+                            <Image src={imageUrl} alt="Foto resep" fill sizes="400px" className="object-cover" />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                              <button
+                                type="button"
+                                onClick={() => imageInputRef.current?.click()}
+                                disabled={uploadingImage}
+                                className="bg-white text-text-main px-4 py-2 rounded-full text-xs font-bold shadow hover:bg-gray-50 transition-colors"
+                              >
+                                Ganti Foto
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setImageUrl("")}
+                                disabled={uploadingImage}
+                                className="bg-white text-red-500 px-4 py-2 rounded-full text-xs font-bold shadow hover:bg-red-50 transition-colors"
+                              >
+                                Hapus
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => imageInputRef.current?.click()}
+                            disabled={uploadingImage}
+                            className="w-full h-44 border-2 border-dashed border-gray-200 rounded-3xl flex flex-col items-center justify-center bg-surface hover:bg-gray-50 transition-colors group disabled:opacity-50"
+                          >
+                            {uploadingImage ? (
+                              <div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin" />
+                            ) : (
+                              <>
+                                <span className="material-symbols-outlined text-4xl text-gray-300 group-hover:text-primary mb-2">
+                                  image_search
+                                </span>
+                                <span className="text-xs font-bold text-muted">Upload Foto Resep</span>
+                                <span className="text-[10px] text-gray-300 mt-1">PNG, JPG, WEBP maks 5MB</span>
+                              </>
+                            )}
+                          </button>
+                        )}
                       </div>
 
                       <div className="space-y-2">
@@ -868,7 +1019,7 @@ export default function AdminDashboardPage() {
                         type="submit"
                         className="bg-primary text-white px-10 py-3 rounded-full font-bold shadow-soft hover:shadow-lg transition-all hover:-translate-y-0.5 active:translate-y-0"
                       >
-                        {editingId ? "Update Resep" : "Simpan Resep"}
+                        Simpan Resep
                       </button>
                     </div>
                   </form>
@@ -1022,6 +1173,201 @@ export default function AdminDashboardPage() {
           </div>
         </main>
       </div>
+
+      {/* ══ EDIT RECIPE MODAL ══ */}
+      {editModalOpen && (
+        <div className="fixed inset-0 z-100 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col">
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-8 py-5 border-b border-gray-100 shrink-0">
+              <h2 className="text-2xl font-heading font-bold">Edit Resep</h2>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-muted">Publish ke AI?</span>
+                  <button
+                    type="button"
+                    onClick={() => setMIsPublished(!mIsPublished)}
+                    className={`w-11 h-6 rounded-full relative transition-colors ${mIsPublished ? "bg-primary" : "bg-gray-200"}`}
+                  >
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${mIsPublished ? "left-6" : "left-1"}`} />
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeEditModal}
+                  className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 text-muted transition-colors"
+                >
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Modal body — scrollable */}
+            <form id="edit-recipe-form" onSubmit={handleModalSave} className="overflow-y-auto flex-1 px-8 py-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                {/* Left column */}
+                <div className="space-y-5">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-bold text-muted ml-1">Nama Resep</label>
+                    <input
+                      type="text"
+                      value={mName}
+                      onChange={(e) => setMName(e.target.value)}
+                      required
+                      className="bg-surface h-12 rounded-2xl px-4 border-none focus:ring-2 focus:ring-primary/20 font-medium"
+                      placeholder="Contoh: Nasi Goreng Spesial"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm font-bold text-muted ml-1">Tipe Makan</label>
+                      <select value={mMealType} onChange={(e) => setMMealType(e.target.value)} className="bg-surface h-12 rounded-2xl px-4 border-none focus:ring-2 focus:ring-primary/20 font-medium">
+                        <option value="sarapan">Breakfast</option>
+                        <option value="siang">Lunch</option>
+                        <option value="malam">Dinner</option>
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm font-bold text-muted ml-1">Waktu Masak (menit)</label>
+                      <input type="number" value={mPrepTime} onChange={(e) => setMPrepTime(e.target.value)} className="bg-surface h-12 rounded-2xl px-4 border-none focus:ring-2 focus:ring-primary/20 font-medium" placeholder="30" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    {[
+                      { label: "Kalori (Kkal)", val: mCalories, set: setMCalories, ph: "450" },
+                      { label: "Protein (g)", val: mProtein, set: setMProtein, ph: "40" },
+                      { label: "Karbohidrat (g)", val: mCarbs, set: setMCarbs, ph: "30" },
+                      { label: "Lemak (g)", val: mFat, set: setMFat, ph: "10" },
+                    ].map(({ label, val, set, ph }) => (
+                      <div key={label} className="flex flex-col gap-2">
+                        <label className="text-sm font-bold text-muted ml-1">{label}</label>
+                        <input type="number" value={val} onChange={(e) => set(e.target.value)} className="bg-surface h-12 rounded-2xl px-4 border-none focus:ring-2 focus:ring-primary/20 font-medium" placeholder={ph} />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-muted ml-1">Bahan-bahan</label>
+                    <div className="grid grid-cols-[1fr_72px_112px_36px] gap-1.5 mb-1">
+                      <span className="text-[10px] font-bold text-muted ml-1">Nama Bahan</span>
+                      <span className="text-[10px] font-bold text-muted ml-1">Jumlah</span>
+                      <span className="text-[10px] font-bold text-muted ml-1">Satuan</span>
+                      <span />
+                    </div>
+                    {mIngredients.map((ing, idx) => (
+                      <div key={idx} className="grid grid-cols-[1fr_72px_112px_36px] gap-1.5 items-center">
+                        <input value={ing.name} onChange={(e) => updateMIngredient(idx, "name", e.target.value)} className="bg-surface h-10 rounded-xl px-3 border-none focus:ring-2 focus:ring-primary/20 text-sm" placeholder="cth: Telur" />
+                        <input type="number" value={ing.qty || ""} onChange={(e) => updateMIngredient(idx, "qty", Number(e.target.value))} disabled={ing.unit === "secukupnya"} min="0" step="any" className="bg-surface h-10 rounded-xl px-3 border-none focus:ring-2 focus:ring-primary/20 text-sm disabled:opacity-40" placeholder="0" />
+                        <select value={ing.unit} onChange={(e) => updateMIngredient(idx, "unit", e.target.value)} className="bg-surface h-10 rounded-xl px-3 border-none focus:ring-2 focus:ring-primary/20 text-sm">
+                          {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+                        </select>
+                        <button type="button" onClick={() => removeMIngredient(idx)} className="text-red-400 hover:text-red-500 p-1.5 hover:bg-red-50 rounded-lg transition-colors">
+                          <span className="material-symbols-outlined text-sm">close</span>
+                        </button>
+                      </div>
+                    ))}
+                    <button type="button" onClick={addMIngredient} className="text-primary text-xs font-bold flex items-center gap-1 hover:underline mt-1">
+                      <span className="material-symbols-outlined text-sm">add_circle</span>
+                      Tambah Bahan
+                    </button>
+                  </div>
+                </div>
+
+                {/* Right column */}
+                <div className="space-y-5">
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-muted ml-1">Foto Resep</label>
+                    <input ref={mImageInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleMImageUpload} />
+                    {mImageUrl ? (
+                      <div className="relative w-full h-44 rounded-3xl overflow-hidden border border-gray-200 bg-surface group">
+                        <Image src={mImageUrl} alt="Foto resep" fill sizes="400px" className="object-cover" />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                          <button type="button" onClick={() => mImageInputRef.current?.click()} disabled={mUploadingImage} className="bg-white text-text-main px-4 py-2 rounded-full text-xs font-bold shadow hover:bg-gray-50 transition-colors">Ganti Foto</button>
+                          <button type="button" onClick={() => setMImageUrl("")} disabled={mUploadingImage} className="bg-white text-red-500 px-4 py-2 rounded-full text-xs font-bold shadow hover:bg-red-50 transition-colors">Hapus</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button type="button" onClick={() => mImageInputRef.current?.click()} disabled={mUploadingImage} className="w-full h-44 border-2 border-dashed border-gray-200 rounded-3xl flex flex-col items-center justify-center bg-surface hover:bg-gray-50 transition-colors group disabled:opacity-50">
+                        {mUploadingImage ? (
+                          <div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin" />
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined text-4xl text-gray-300 group-hover:text-primary mb-2">image_search</span>
+                            <span className="text-xs font-bold text-muted">Upload Foto Resep</span>
+                            <span className="text-[10px] text-gray-300 mt-1">PNG, JPG, WEBP maks 5MB</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-muted ml-1">Instruksi Memasak</label>
+                    {mInstructions.map((ins, idx) => (
+                      <div key={idx} className="flex gap-3 items-start">
+                        <span className="bg-primary/10 text-primary w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-2">{idx + 1}</span>
+                        <textarea
+                          value={ins}
+                          onChange={(e) => { const u = [...mInstructions]; u[idx] = e.target.value; setMInstructions(u); }}
+                          className="w-full bg-surface rounded-xl p-3 border-none focus:ring-2 focus:ring-primary/20 text-sm resize-none"
+                          rows={2}
+                          placeholder="Jelaskan langkah ini..."
+                        />
+                        <button type="button" onClick={() => setMInstructions((prev) => prev.filter((_, i) => i !== idx))} className="text-red-400 hover:text-red-500 p-2 mt-1 hover:bg-red-50 rounded-lg transition-colors">
+                          <span className="material-symbols-outlined text-sm">close</span>
+                        </button>
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => setMInstructions((prev) => [...prev, ""])} className="text-primary text-xs font-bold flex items-center gap-1 hover:underline mt-1">
+                      <span className="material-symbols-outlined text-sm">add_circle</span>
+                      Tambah Langkah
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </form>
+
+            {/* Modal footer */}
+            <div className="px-8 py-5 border-t border-gray-100 flex justify-end gap-3 shrink-0">
+              <button type="button" onClick={closeEditModal} className="px-8 py-3 text-sm font-bold text-muted hover:bg-gray-100 rounded-full transition-colors">
+                Batal
+              </button>
+              <button type="submit" form="edit-recipe-form" className="bg-primary text-white px-10 py-3 rounded-full font-bold shadow-soft hover:shadow-lg transition-all hover:-translate-y-0.5 active:translate-y-0">
+                Simpan Perubahan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══ DELETE CONFIRM MODAL ══ */}
+      {deleteConfirmId !== null && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl flex flex-col gap-4">
+            <div className="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center self-center mb-2">
+              <span className="material-symbols-outlined text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>delete</span>
+            </div>
+            <h3 className="text-xl font-heading font-bold text-center text-text-main">Hapus Resep?</h3>
+            <p className="text-center text-sm text-muted leading-relaxed">
+              Resep ini akan dihapus permanen dari database AI dan tidak dapat dikembalikan.
+            </p>
+            <div className="flex gap-3 mt-2">
+              <button
+                onClick={() => setDeleteConfirmId(null)}
+                disabled={deleting}
+                className="flex-1 py-3 px-4 rounded-xl font-bold text-text-main bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                className="flex-1 py-3 px-4 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 shadow-sm"
+              >
+                {deleting ? "Menghapus..." : "Ya, Hapus"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
