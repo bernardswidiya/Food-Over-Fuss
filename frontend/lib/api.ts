@@ -162,6 +162,11 @@ export interface MealPlanResponse {
   daily_menus: DailyMenuResponse[];
 }
 
+export async function getMealHistory(): Promise<MealPlanResponse[]> {
+  const res = await authFetch(`${API_BASE_URL}/api/meals/history`);
+  return handleResponse<MealPlanResponse[]>(res);
+}
+
 export async function getMeals(startDate: string, endDate: string): Promise<DailyMenuResponse[]> {
   const res = await authFetch(`${API_BASE_URL}/api/meals?start_date=${startDate}&end_date=${endDate}`);
   return handleResponse<DailyMenuResponse[]>(res);
