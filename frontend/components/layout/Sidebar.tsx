@@ -13,6 +13,7 @@ export default function Sidebar() {
     { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
     { href: "/grocery", label: "Daftar Belanja", icon: "shopping_cart" },
     { href: "/calendar", label: "Kalender", icon: "calendar_month" },
+    { href: "/history", label: "Riwayat", icon: "history" },
     { href: "/chatbot", label: "Foodie Assistant", icon: "chat_bubble" },
     { href: "/settings", label: "Pengaturan", icon: "settings" },
   ];

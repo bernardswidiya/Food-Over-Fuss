@@ -26,6 +26,16 @@ def get_meals(start_date: date, end_date: date, current_user: User = Depends(get
     ).order_by(DailyMenu.date, DailyMenu.meal_type).all()
     return menus
 
+@router.get("/history", response_model=List[MealPlanResponse])
+def get_meal_history(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    plans = (
+        db.query(MealPlan)
+        .filter(MealPlan.user_id == current_user.id)
+        .order_by(MealPlan.start_date.desc())
+        .all()
+    )
+    return plans
+
 @router.post("/generate-week", response_model=MealPlanResponse)
 def generate_weekly_meals(req: MealGenerateRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     existing_plans = db.query(MealPlan).filter(

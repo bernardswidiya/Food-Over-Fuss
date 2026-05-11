@@ -6,7 +6,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from ..models import Recipe, UserRecipeInteraction
+from ..models import Recipe, UserRecipeInteraction, Preference
 
 PENALTY_AMOUNT = 0.25
 MIN_AFFINITY = 0.0
@@ -21,6 +21,18 @@ def _norm(value: float, max_val: float) -> float:
     if max_val == 0:
         return 0.0
     return min(value / max_val, 1.0)
+
+
+def _has_allergen(recipe: Recipe, allergens: list[str]) -> bool:
+    ingredient_names = [
+        i.get("name", "").lower() if isinstance(i, dict) else str(i).lower()
+        for i in (recipe.ingredients or [])
+    ]
+    return any(
+        allergen in name
+        for name in ingredient_names
+        for allergen in allergens
+    )
 
 
 def _distance(features: list[float], target: list[float]) -> float:
@@ -72,6 +84,14 @@ def recommend_recipe_for_slot(
             candidates = recipes
     else:
         candidates = recipes
+
+    # Filter out recipes that contain the user's allergens
+    pref = db.query(Preference).filter(Preference.user_id == user_id).first()
+    if pref and pref.allergies:
+        allergens = [a.strip().lower() for a in pref.allergies.split(",") if a.strip()]
+        safe = [r for r in candidates if not _has_allergen(r, allergens)]
+        if safe:
+            candidates = safe
 
     # Build affinity lookup for this user
     interactions = (
