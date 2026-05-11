@@ -93,11 +93,6 @@ export default function SettingsPage() {
     window.location.reload();
   };
 
-  const handleLogout = async () => {
-    await logoutUser();
-    router.push("/login");
-  };
-
   const handleDeleteAccount = () => {
     setShowDeleteModal(true);
   };
@@ -108,8 +103,8 @@ export default function SettingsPage() {
       await deleteAccount();
       await logoutUser();
       router.push("/login");
-    } catch (err: any) {
-      alert(err.message || "Gagal menghapus akun. Silakan coba lagi.");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Gagal menghapus akun. Silakan coba lagi.");
       setDeletingAccount(false);
       setShowDeleteModal(false);
     }
@@ -119,7 +114,6 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate size (e.g. max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       alert("Ukuran file maksimal 5MB");
       return;
@@ -129,12 +123,10 @@ export default function SettingsPage() {
     try {
       const updatedUser = await uploadAvatar(file);
       setProfilePicture(updatedUser.profile_picture);
-      // Reload page to reflect new avatar globally if it relies on context, or just let state handle it locally
-    } catch (err: any) {
-      alert(err.message || "Gagal mengunggah foto");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Gagal mengunggah foto");
     } finally {
       setUploadingAvatar(false);
-      // Reset input
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -143,13 +135,13 @@ export default function SettingsPage() {
 
   const handleAvatarDelete = async () => {
     if (!confirm("Yakin ingin menghapus foto profil?")) return;
-    
+
     setUploadingAvatar(true);
     try {
       const updatedUser = await deleteAvatar();
       setProfilePicture(updatedUser.profile_picture);
-    } catch (err: any) {
-      alert(err.message || "Gagal menghapus foto");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Gagal menghapus foto");
     } finally {
       setUploadingAvatar(false);
     }
