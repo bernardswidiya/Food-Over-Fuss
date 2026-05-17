@@ -79,11 +79,36 @@ def recommend_recipe_for_slot(
         return None
 
     if exclude_recipe_id is not None:
-        candidates = [r for r in recipes if r.id != exclude_recipe_id]
-        if not candidates:
-            candidates = recipes
+        pool = [r for r in recipes if r.id != exclude_recipe_id]
+        if not pool:
+            pool = recipes
     else:
-        candidates = recipes
+        pool = recipes
+
+    # Hard-filter by user budget and allergens
+    preference = db.query(Preference).filter(Preference.user_id == user_id).first()
+    if preference:
+        per_meal_budget = (preference.daily_budget or 0) / 3
+        user_allergies = set(
+            a.strip().lower()
+            for a in (preference.allergies or "").split(",")
+            if a.strip()
+        )
+
+        filtered = []
+        for r in pool:
+            if per_meal_budget > 0 and (r.estimated_cost or 0) > per_meal_budget:
+                continue
+            recipe_allergens = set(
+                a.strip().lower() for a in (r.allergens or [])
+            )
+            if user_allergies & recipe_allergens:
+                continue
+            filtered.append(r)
+
+        candidates = filtered if filtered else pool
+    else:
+        candidates = pool
 
     # Filter out recipes that contain the user's allergens
     pref = db.query(Preference).filter(Preference.user_id == user_id).first()

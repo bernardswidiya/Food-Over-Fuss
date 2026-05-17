@@ -94,6 +94,8 @@ class Recipe(Base):
     instructions = Column(JSON, default=list)
     is_published = Column(Boolean, default=False)
     image_url = Column(String, nullable=True)
+    allergens = Column(JSON, default=list)
+    estimated_cost = Column(Integer, default=0)
 
 class UserRecipeInteraction(Base):
     __tablename__ = "user_recipe_interactions"

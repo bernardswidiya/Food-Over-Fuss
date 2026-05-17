@@ -126,6 +126,8 @@ class RecipeBase(BaseModel):
     instructions: List[str]
     is_published: bool = False
     image_url: Optional[str] = None
+    allergens: List[str] = []
+    estimated_cost: int = 0
 
     @field_validator("ingredients", mode="before")
     @classmethod
@@ -137,6 +139,13 @@ class RecipeBase(BaseModel):
                 {"name": item, "qty": 0, "unit": ""} if isinstance(item, str) else item
                 for item in v
             ]
+        return v
+
+    @field_validator("allergens", mode="before")
+    @classmethod
+    def coerce_allergens(cls, v: object) -> object:
+        if v is None:
+            return []
         return v
 
 class RecipeCreate(RecipeBase):
@@ -153,6 +162,8 @@ class RecipeUpdate(RecipeBase):
     ingredients: Optional[List[IngredientItem]] = None
     instructions: Optional[List[str]] = None
     is_published: Optional[bool] = None
+    allergens: Optional[List[str]] = None
+    estimated_cost: Optional[int] = None
 
 class RecipeResponse(RecipeBase):
     id: int

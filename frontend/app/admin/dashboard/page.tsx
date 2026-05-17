@@ -19,6 +19,15 @@ const UNITS = [
   "sdm", "sdt", "gelas", "mangkuk", "ikat", "genggam", "secukupnya",
 ];
 
+const ALLERGENS = [
+  { id: "vegan", label: "Vegan" },
+  { id: "vegetarian", label: "Vegetarian" },
+  { id: "gluten_free", label: "Bebas Gluten" },
+  { id: "dairy_free", label: "Bebas Susu" },
+  { id: "nut_allergy", label: "Kacang" },
+  { id: "seafood_allergy", label: "Seafood" },
+];
+
 interface Recipe {
   id: number;
   name: string;
@@ -32,6 +41,8 @@ interface Recipe {
   instructions: string[];
   is_published: boolean;
   image_url?: string | null;
+  allergens?: string[];
+  estimated_cost?: number;
 }
 
 interface AdminStats {
@@ -116,6 +127,8 @@ export default function AdminDashboardPage() {
   const [instructions, setInstructions] = useState<string[]>([""])
   const [imageUrl, setImageUrl] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [estimatedCost, setEstimatedCost] = useState("");
+  const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   // Edit modal state (separate from add form)
@@ -133,6 +146,8 @@ export default function AdminDashboardPage() {
   const [mInstructions, setMInstructions] = useState<string[]>([]);
   const [mImageUrl, setMImageUrl] = useState("");
   const [mUploadingImage, setMUploadingImage] = useState(false);
+  const [mEstimatedCost, setMEstimatedCost] = useState("");
+  const [mSelectedAllergens, setMSelectedAllergens] = useState<string[]>([]);
   const mImageInputRef = useRef<HTMLInputElement>(null);
 
   // Delete confirmation state
@@ -209,6 +224,8 @@ export default function AdminDashboardPage() {
     setIngredients([{ name: "", qty: 0, unit: "gram" }]);
     setInstructions([""]);
     setImageUrl("");
+    setEstimatedCost("");
+    setSelectedAllergens([]);
   };
 
   const handleEdit = (r: Recipe) => {
@@ -228,6 +245,8 @@ export default function AdminDashboardPage() {
     setMInstructions(r.instructions?.length ? r.instructions : [""]);
     setMIsPublished(r.is_published || false);
     setMImageUrl(r.image_url || "");
+    setMEstimatedCost(r.estimated_cost?.toString() || "");
+    setMSelectedAllergens(r.allergens || []);
     setEditModalOpen(true);
   };
 
@@ -251,6 +270,8 @@ export default function AdminDashboardPage() {
       instructions: mInstructions.filter((i) => i.trim() !== ""),
       is_published: mIsPublished,
       image_url: mImageUrl || null,
+      estimated_cost: Number(mEstimatedCost) || 0,
+      allergens: mSelectedAllergens,
     };
     try {
       const res = await fetch(`http://localhost:8000/api/admin/recipes/${editModalId}`, {
@@ -296,6 +317,8 @@ export default function AdminDashboardPage() {
       instructions: instructions.filter((i) => i.trim() !== ""),
       is_published: isPublished,
       image_url: imageUrl || null,
+      estimated_cost: Number(estimatedCost) || 0,
+      allergens: selectedAllergens,
     };
     try {
       const res = await fetch("http://localhost:8000/api/admin/recipes", {
@@ -380,6 +403,12 @@ export default function AdminDashboardPage() {
       if (mImageInputRef.current) mImageInputRef.current.value = "";
     }
   };
+
+  const toggleAllergen = (id: string) =>
+    setSelectedAllergens((prev) => prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]);
+
+  const toggleMAllergen = (id: string) =>
+    setMSelectedAllergens((prev) => prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]);
 
   const filteredRecipes = recipes.filter((r) =>
     r.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -862,6 +891,37 @@ export default function AdminDashboardPage() {
                         ))}
                       </div>
 
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-bold text-muted ml-1">Estimasi Harga (Rp)</label>
+                        <input
+                          type="number"
+                          value={estimatedCost}
+                          onChange={(e) => setEstimatedCost(e.target.value)}
+                          className="bg-surface h-12 rounded-2xl px-4 border-none focus:ring-2 focus:ring-primary/20 font-medium"
+                          placeholder="15000"
+                          min="0"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-bold text-muted ml-1">Label Diet / Alergen</label>
+                        <div className="flex flex-wrap gap-2">
+                          {ALLERGENS.map((a) => {
+                            const active = selectedAllergens.includes(a.id);
+                            return (
+                              <button
+                                key={a.id}
+                                type="button"
+                                onClick={() => toggleAllergen(a.id)}
+                                className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${active ? "bg-primary/10 border-primary text-primary" : "bg-surface border-transparent text-muted hover:border-primary/30"}`}
+                              >
+                                {a.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
                       <div className="space-y-2">
                         <label className="text-sm font-bold text-muted ml-1">Bahan-bahan</label>
                         <div className="grid grid-cols-[1fr_72px_112px_36px] gap-1.5 mb-1">
@@ -1244,6 +1304,23 @@ export default function AdminDashboardPage() {
                         <input type="number" value={val} onChange={(e) => set(e.target.value)} className="bg-surface h-12 rounded-2xl px-4 border-none focus:ring-2 focus:ring-primary/20 font-medium" placeholder={ph} />
                       </div>
                     ))}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-bold text-muted ml-1">Estimasi Harga (Rp)</label>
+                    <input type="number" value={mEstimatedCost} onChange={(e) => setMEstimatedCost(e.target.value)} className="bg-surface h-12 rounded-2xl px-4 border-none focus:ring-2 focus:ring-primary/20 font-medium" placeholder="15000" min="0" />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-bold text-muted ml-1">Label Diet / Alergen</label>
+                    <div className="flex flex-wrap gap-2">
+                      {ALLERGENS.map((a) => {
+                        const active = mSelectedAllergens.includes(a.id);
+                        return (
+                          <button key={a.id} type="button" onClick={() => toggleMAllergen(a.id)} className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${active ? "bg-primary/10 border-primary text-primary" : "bg-surface border-transparent text-muted hover:border-primary/30"}`}>
+                            {a.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-muted ml-1">Bahan-bahan</label>
