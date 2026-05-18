@@ -234,3 +234,46 @@ export async function sendChatMessage(messages: ChatMessage[]): Promise<ChatResp
   });
   return handleResponse<ChatResponse>(res);
 }
+
+// ── Password Reset ──
+
+export async function forgotPassword(email: string): Promise<{ message: string }> {
+  const res = await authFetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+  return handleResponse<{ message: string }>(res);
+}
+
+export async function resetPassword(token: string, new_password: string): Promise<{ message: string }> {
+  const res = await authFetch(`${API_BASE_URL}/api/auth/reset-password`, {
+    method: "POST",
+    body: JSON.stringify({ token, new_password }),
+  });
+  return handleResponse<{ message: string }>(res);
+}
+
+// ── Notifications ──
+
+export interface NotificationItem {
+  id: number;
+  user_id: number;
+  title: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export async function getNotifications(): Promise<NotificationItem[]> {
+  const res = await authFetch(`${API_BASE_URL}/api/notifications`);
+  return handleResponse<NotificationItem[]>(res);
+}
+
+export async function markNotificationRead(id: number): Promise<NotificationItem> {
+  const res = await authFetch(`${API_BASE_URL}/api/notifications/${id}/read`, { method: "PATCH" });
+  return handleResponse<NotificationItem>(res);
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  await authFetch(`${API_BASE_URL}/api/notifications/read-all`, { method: "POST" });
+}

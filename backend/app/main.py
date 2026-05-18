@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from app.database import engine, Base
-from app.api.routers import auth, preferences, meals, groceries, admin, users, chat
+from app.api.routers import auth, preferences, meals, groceries, admin, users, chat, notifications
 import os
 
 # Buat semua tabel (Idealnya gunakan Alembic untuk production)
@@ -37,6 +37,7 @@ app.include_router(groceries.router, prefix="/api/groceries", tags=["groceries"]
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
+app.include_router(notifications.router, prefix="/api/notifications", tags=["notifications"])
 
 @app.get("/")
 def read_root():

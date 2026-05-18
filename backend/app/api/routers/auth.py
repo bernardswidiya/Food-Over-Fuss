@@ -1,15 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request, BackgroundTasks
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from jose import jwt
 from datetime import datetime, timedelta, timezone
 from starlette.responses import RedirectResponse
 import os
+import secrets
 
 from app.models import User, Preference
-from app.schemas import UserCreate, UserResponse, LoginRequest, LoginResponse
+from app.schemas import UserCreate, UserResponse, LoginRequest, LoginResponse, ForgotPasswordRequest, ResetPasswordRequest
 from app.api.dependencies import get_db, get_current_user
 from app.auth import oauth
+from app.utils.email import send_reset_password_email
 
 router = APIRouter()
 
@@ -94,6 +96,49 @@ def logout(response: Response):
 def get_me(current_user: User = Depends(get_current_user)):
     """Return current authenticated user profile."""
     return current_user
+
+# ─────────────────────────────────────────────
+# Password Reset
+# ─────────────────────────────────────────────
+
+@router.post("/forgot-password")
+def forgot_password(
+    payload: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.email == payload.email).first()
+    # Always return the same message to prevent user enumeration
+    success = {"message": "Jika email terdaftar, link reset telah dikirim ke inbox kamu."}
+    if not user:
+        return success
+
+    token = secrets.token_urlsafe(32)
+    user.reset_token = token
+    user.reset_token_expires = datetime.now(timezone.utc) + timedelta(minutes=15)
+    db.commit()
+
+    background_tasks.add_task(send_reset_password_email, user.email, token)
+    return success
+
+
+@router.post("/reset-password")
+def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.reset_token == payload.token).first()
+    if not user or user.reset_token_expires is None:
+        raise HTTPException(status_code=400, detail="Token tidak valid atau sudah kedaluwarsa.")
+
+    expires = user.reset_token_expires
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if datetime.now(timezone.utc) > expires:
+        raise HTTPException(status_code=400, detail="Token sudah kedaluwarsa. Silakan minta link baru.")
+
+    user.hashed_password = get_password_hash(payload.new_password)
+    user.reset_token = None
+    user.reset_token_expires = None
+    db.commit()
+    return {"message": "Kata sandi berhasil diperbarui. Silakan login."}
 
 # ─────────────────────────────────────────────
 # Google OAuth

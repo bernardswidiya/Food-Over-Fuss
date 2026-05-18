@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, List
-from datetime import date
+from datetime import date, datetime
 from .models import MealTypeEnum
 
 # --- User Schemas ---
@@ -199,3 +199,23 @@ class DetectedIngredient(BaseModel):
 class DetectIngredientsResponse(BaseModel):
     ingredients: List[DetectedIngredient]
     suggested_recipes: List[str] = []
+
+# --- Password Reset Schemas ---
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+# --- Notification Schemas ---
+class NotificationResponse(BaseModel):
+    id: int
+    user_id: int
+    title: str
+    message: str
+    is_read: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

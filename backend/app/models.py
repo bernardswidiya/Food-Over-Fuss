@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, Boolean, Date, DateTime, Enum as SQLEnum, JSON
 from sqlalchemy.orm import relationship
+from datetime import datetime, timezone
 import enum
 from .database import Base
 
@@ -18,11 +19,14 @@ class User(Base):
     auth_provider = Column(String, default="local")
     profile_picture = Column(String, nullable=True)
     role = Column(String, default="user")  # "user" or "admin"
+    reset_token = Column(String, index=True, nullable=True)
+    reset_token_expires = Column(DateTime, nullable=True)
 
     preference = relationship("Preference", back_populates="owner", uselist=False, cascade="all, delete-orphan")
     meal_plans = relationship("MealPlan", back_populates="owner", cascade="all, delete-orphan")
     grocery_items = relationship("GroceryItem", back_populates="owner", cascade="all, delete-orphan")
     recipe_interactions = relationship("UserRecipeInteraction", back_populates="user", cascade="all, delete-orphan")
+    notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
 
 class Preference(Base):
     __tablename__ = "preferences"
@@ -109,3 +113,15 @@ class UserRecipeInteraction(Base):
 
     user = relationship("User", back_populates="recipe_interactions")
     recipe = relationship("Recipe")
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    title = Column(String, nullable=False)
+    message = Column(Text, nullable=False)
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User", back_populates="notifications")
