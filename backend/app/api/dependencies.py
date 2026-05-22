@@ -77,21 +77,36 @@ def get_current_user(
                 user = db.query(User).filter(User.email == email).first()
                 if not user:
                     metadata = payload.get("user_metadata") or {}
-                    name = metadata.get("full_name") or metadata.get("name") or email.split("@")[0]
+                    name = (
+                        metadata.get("full_name")
+                        or metadata.get("name")
+                        or email.split("@")[0]
+                    )
                     picture = metadata.get("picture") or metadata.get("avatar_url")
+                    print(f"[INFO] Auto-creating user from Google OAuth: email={email}, name={name}")
                     user = User(
                         email=email,
                         name=name,
+                        hashed_password=None,
                         supabase_id=supabase_id,
                         auth_provider="google",
                         profile_picture=picture,
+                        role="user",
                     )
                     db.add(user)
                     db.commit()
                     db.refresh(user)
-                elif not user.supabase_id:
-                    user.supabase_id = supabase_id
-                    db.commit()
+                    print(f"[INFO] User created successfully: id={user.id}")
+                else:
+                    updated = False
+                    if not user.supabase_id:
+                        user.supabase_id = supabase_id
+                        updated = True
+                    if not user.auth_provider or user.auth_provider == "local":
+                        user.auth_provider = "google"
+                        updated = True
+                    if updated:
+                        db.commit()
                 return user
         except JWTError:
             pass

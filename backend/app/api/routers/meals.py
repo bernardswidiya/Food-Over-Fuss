@@ -1,9 +1,10 @@
 import json
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List
 from datetime import date, timedelta
-from app.models import MealPlan, DailyMenu, User, Recipe
+from app.models import MealPlan, DailyMenu, User, Recipe, UserRecipeInteraction
 from app.schemas import (
     MealPlanResponse, MealGenerateRequest, DailyMenuResponse,
     RecipeFeedbackRequest, DetectIngredientsResponse, DetectedIngredient,
@@ -157,6 +158,187 @@ def submit_feedback(req: RecipeFeedbackRequest, current_user: User = Depends(get
         "new_affinity_score": interaction.affinity_score,
         "penalty_count": interaction.penalty_count,
     }
+
+@router.get("/{menu_id}/detail")
+def get_meal_detail(
+    menu_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        menu = db.query(DailyMenu).join(MealPlan).filter(
+            DailyMenu.id == menu_id,
+            MealPlan.user_id == current_user.id,
+        ).first()
+        if not menu:
+            raise HTTPException(status_code=404, detail="Menu tidak ditemukan")
+
+        result = {
+            "id": menu.id,
+            "meal_plan_id": menu.meal_plan_id,
+            "date": str(menu.date),
+            "meal_type": menu.meal_type,
+            "recipe_name": menu.recipe_name,
+            "calories": menu.calories,
+            "protein": menu.protein,
+            "carbs": menu.carbs,
+            "fat": menu.fat,
+            "ingredients": menu.ingredients,
+            "recipe_id": menu.recipe_id,
+            "image_url": None,
+            "prep_time": None,
+            "instructions": [],
+            "allergens": [],
+            "estimated_cost": 0,
+        }
+
+        if menu.recipe_id:
+            recipe = db.query(Recipe).filter(Recipe.id == menu.recipe_id).first()
+            if recipe:
+                result["image_url"] = recipe.image_url
+                result["prep_time"] = recipe.prep_time
+                result["instructions"] = recipe.instructions or []
+                result["allergens"] = recipe.allergens or []
+                result["estimated_cost"] = recipe.estimated_cost or 0
+
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[ERROR] get_meal_detail menu_id={menu_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/{menu_id}/alternatives")
+def get_meal_alternatives(
+    menu_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        menu = db.query(DailyMenu).join(MealPlan).filter(
+            DailyMenu.id == menu_id,
+            MealPlan.user_id == current_user.id,
+        ).first()
+        if not menu:
+            raise HTTPException(status_code=404, detail="Menu tidak ditemukan")
+
+        cal_min = int(menu.calories * 0.8)
+        cal_max = int(menu.calories * 1.2)
+        prot_min = int(menu.protein * 0.8)
+        prot_max = int(menu.protein * 1.2)
+
+        print(f"[DEBUG] alternatives menu_id={menu_id}: cal={menu.calories} ({cal_min}-{cal_max}), prot={menu.protein} ({prot_min}-{prot_max})")
+
+        query = db.query(Recipe).filter(
+            Recipe.is_published == True,
+            Recipe.calories >= cal_min,
+            Recipe.calories <= cal_max,
+            Recipe.protein >= prot_min,
+            Recipe.protein <= prot_max,
+        )
+        if menu.recipe_id:
+            query = query.filter(Recipe.id != menu.recipe_id)
+
+        alternatives = query.order_by(func.random()).limit(6).all()
+        print(f"[DEBUG] found {len(alternatives)} alternatives")
+
+        return [
+            {
+                "id": r.id,
+                "name": r.name,
+                "meal_type": r.meal_type.value if hasattr(r.meal_type, "value") else r.meal_type,
+                "prep_time": r.prep_time,
+                "calories": r.calories,
+                "protein": r.protein,
+                "carbs": r.carbs,
+                "fat": r.fat,
+                "image_url": r.image_url,
+                "allergens": r.allergens or [],
+                "estimated_cost": r.estimated_cost or 0,
+            }
+            for r in alternatives
+        ]
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[ERROR] get_meal_alternatives menu_id={menu_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/{menu_id}/substitute")
+def get_meal_substitute(
+    menu_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        menu = db.query(DailyMenu).join(MealPlan).filter(
+            DailyMenu.id == menu_id,
+            MealPlan.user_id == current_user.id,
+        ).first()
+        if not menu:
+            raise HTTPException(status_code=404, detail="Menu tidak ditemukan")
+
+        penalized_ids = [
+            i.recipe_id for i in db.query(UserRecipeInteraction).filter(
+                UserRecipeInteraction.user_id == current_user.id,
+                UserRecipeInteraction.penalty_count > 0,
+            ).all()
+        ]
+        if menu.recipe_id:
+            penalized_ids.append(menu.recipe_id)
+
+        cal_min = int(menu.calories * 0.8)
+        cal_max = int(menu.calories * 1.2)
+        prot_min = int(menu.protein * 0.8)
+        prot_max = int(menu.protein * 1.2)
+
+        query = db.query(Recipe).filter(
+            Recipe.is_published == True,
+            Recipe.calories >= cal_min,
+            Recipe.calories <= cal_max,
+            Recipe.protein >= prot_min,
+            Recipe.protein <= prot_max,
+        )
+        if penalized_ids:
+            query = query.filter(Recipe.id.notin_(penalized_ids))
+
+        substitute = query.order_by(func.random()).first()
+
+        if not substitute:
+            print(f"[DEBUG] no macro match, fallback to meal_type={menu.meal_type}")
+            fallback = db.query(Recipe).filter(
+                Recipe.is_published == True,
+                Recipe.meal_type == menu.meal_type,
+            )
+            if menu.recipe_id:
+                fallback = fallback.filter(Recipe.id != menu.recipe_id)
+            substitute = fallback.order_by(func.random()).first()
+
+        if not substitute:
+            raise HTTPException(status_code=404, detail="Tidak ada pengganti yang tersedia")
+
+        return {
+            "id": substitute.id,
+            "name": substitute.name,
+            "meal_type": substitute.meal_type.value if hasattr(substitute.meal_type, "value") else substitute.meal_type,
+            "prep_time": substitute.prep_time,
+            "calories": substitute.calories,
+            "protein": substitute.protein,
+            "carbs": substitute.carbs,
+            "fat": substitute.fat,
+            "image_url": substitute.image_url,
+            "allergens": substitute.allergens or [],
+            "estimated_cost": substitute.estimated_cost or 0,
+            "instructions": substitute.instructions or [],
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[ERROR] get_meal_substitute menu_id={menu_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @router.post("/detect-ingredients", response_model=DetectIngredientsResponse)
 async def detect_ingredients(file: UploadFile = File(...), current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):

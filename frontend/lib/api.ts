@@ -281,6 +281,57 @@ export async function resetPassword(token: string, new_password: string): Promis
   return handleResponse<{ message: string }>(res);
 }
 
+// ── Recipe Detail (via DailyMenu ID) ─────────────────────────────────────────
+
+export interface MealDetail {
+  id: number;
+  meal_plan_id: number;
+  date: string;
+  meal_type: string;
+  recipe_name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  ingredients: string | null;
+  recipe_id: number | null;
+  image_url: string | null;
+  prep_time: number | null;
+  instructions: string[];
+  allergens: string[];
+  estimated_cost: number;
+}
+
+export interface RecipeCard {
+  id: number;
+  name: string;
+  meal_type: string;
+  prep_time: number;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  image_url: string | null;
+  allergens: string[];
+  estimated_cost: number;
+  instructions?: string[];
+}
+
+export async function getMealDetail(menuId: number): Promise<MealDetail> {
+  const res = await authFetch(`${API_BASE_URL}/api/meals/${menuId}/detail`);
+  return handleResponse<MealDetail>(res);
+}
+
+export async function getMealAlternatives(menuId: number): Promise<RecipeCard[]> {
+  const res = await authFetch(`${API_BASE_URL}/api/meals/${menuId}/alternatives`);
+  return handleResponse<RecipeCard[]>(res);
+}
+
+export async function getMealSubstitute(menuId: number): Promise<RecipeCard> {
+  const res = await authFetch(`${API_BASE_URL}/api/meals/${menuId}/substitute`);
+  return handleResponse<RecipeCard>(res);
+}
+
 // ── Notifications ─────────────────────────────────────────────────────────────
 
 export interface NotificationItem {
