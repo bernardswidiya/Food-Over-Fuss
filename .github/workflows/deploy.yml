@@ -8,6 +8,7 @@ on:
 env:
   BACKEND_IMAGE: backend
   FRONTEND_IMAGE: frontend
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   # ── Job 1: Build & Push to ACR ─────────────────────────────────────────────
