@@ -9,4 +9,3 @@ venv/
 *.egg-info/
 .pytest_cache/
 tests/
-alembic/versions/
