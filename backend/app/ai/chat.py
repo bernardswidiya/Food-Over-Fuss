@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import random
 from typing import Optional
 
 from openai import OpenAI
@@ -12,7 +13,10 @@ GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
 MODEL_NAME = os.getenv("GITHUB_MODEL_NAME", "gpt-4o-mini")
 GITHUB_MODELS_BASE_URL = "https://models.inference.ai.azure.com"
 
-MAX_RECIPES_IN_CONTEXT = 20
+# Ambil 50 resep dari DB, acak, potong ke 20 untuk konteks prompt.
+# Ini membuat chatbot "tahu" menu yang berbeda setiap sesi.
+_RECIPE_POOL_SIZE = 50
+_RECIPE_CONTEXT_SIZE = 20
 
 
 def _get_client() -> OpenAI:
@@ -22,24 +26,52 @@ def _get_client() -> OpenAI:
     )
 
 
+def _format_ingredients(ingredients: list) -> str:
+    """Konversi list ingredient (dict atau string) ke teks ringkas."""
+    if not ingredients:
+        return "-"
+    parts: list[str] = []
+    for item in ingredients:
+        if isinstance(item, dict):
+            name = item.get("name", "")
+            qty  = item.get("qty", "")
+            unit = item.get("unit", "")
+            if qty and unit:
+                parts.append(f"{qty} {unit} {name}".strip())
+            else:
+                parts.append(name)
+        else:
+            parts.append(str(item))
+    return ", ".join(parts)
+
+
 def _build_recipe_context(db: Session) -> str:
-    recipes = (
+    # Ambil pool besar, acak, ambil sampel untuk prompt
+    all_recipes = (
         db.query(Recipe)
         .filter(Recipe.is_published == True)
-        .limit(MAX_RECIPES_IN_CONTEXT)
+        .limit(_RECIPE_POOL_SIZE)
         .all()
     )
-    if not recipes:
+    if not all_recipes:
         return "Belum ada resep yang tersedia di database."
 
+    sample = random.sample(all_recipes, min(_RECIPE_CONTEXT_SIZE, len(all_recipes)))
+
     lines = ["Berikut daftar resep yang tersedia di platform Food Over Fuss:\n"]
-    for r in recipes:
-        ingredients = ", ".join(r.ingredients) if r.ingredients else "-"
+    for r in sample:
+        ingredients_str = _format_ingredients(r.ingredients)
+        allergens_str = (
+            ", ".join(r.allergens) if r.allergens else "tidak ada"
+        )
         lines.append(
             f"- **{r.name}** ({r.meal_type.value}) | "
             f"{r.calories} kkal | Protein {r.protein}g | "
             f"Karbo {r.carbs}g | Lemak {r.fat}g | "
-            f"Prep: {r.prep_time} menit | Bahan: {ingredients}"
+            f"Estimasi Rp{r.estimated_cost:,} | "
+            f"Prep: {r.prep_time} menit | "
+            f"Alergen: {allergens_str} | "
+            f"Bahan: {ingredients_str}"
         )
     return "\n".join(lines)
 
@@ -76,6 +108,7 @@ Panduan:
 - Rekomendasikan resep dari daftar di atas jika relevan dengan pertanyaan pengguna.
 - Sertakan detail kalori, protein, atau bahan jika ditanya.
 - Jika pengguna menyebutkan bahan tertentu, cari resep yang cocok dari daftar.
+- Perhatikan alergen dan anggaran pengguna saat memberikan rekomendasi.
 - Jawab dengan ringkas tapi lengkap. Gunakan emoji seperlunya agar lebih menarik.
 - Jika resep yang diminta tidak ada di daftar, tetap berikan saran umum yang membantu.
 """

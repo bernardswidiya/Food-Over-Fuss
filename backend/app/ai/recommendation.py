@@ -8,13 +8,14 @@ from sqlalchemy.orm import Session
 
 from ..models import Recipe, UserRecipeInteraction, Preference
 
-PENALTY_AMOUNT = 0.25
+PENALTY_AMOUNT = 0.35   # setiap penolakan memangkas 35% affinity (lebih terasa)
 MIN_AFFINITY = 0.0
 INITIAL_AFFINITY = 1.0
 
 # KNN target: balanced nutrition + high affinity
 _TARGET = [0.5, 0.5, 0.5, 0.5, 1.0]
-_TOP_K = 3
+_TOP_K = 12             # dari 3 → 12: randomizer punya ruang gerak yang jauh lebih luas
+_MIN_CANDIDATES = 3     # ambang batas sebelum fallback dilonggarkan
 
 
 def _norm(value: float, max_val: float) -> float:
@@ -23,20 +24,16 @@ def _norm(value: float, max_val: float) -> float:
     return min(value / max_val, 1.0)
 
 
-def _has_allergen(recipe: Recipe, allergens: list[str]) -> bool:
-    ingredient_names = [
-        i.get("name", "").lower() if isinstance(i, dict) else str(i).lower()
-        for i in (recipe.ingredients or [])
-    ]
-    return any(
-        allergen in name
-        for name in ingredient_names
-        for allergen in allergens
-    )
-
-
 def _distance(features: list[float], target: list[float]) -> float:
     return sum((a - b) ** 2 for a, b in zip(features, target)) ** 0.5
+
+
+def _allergen_safe(recipe: Recipe, user_allergies: set[str]) -> bool:
+    """True jika resep tidak mengandung alergen milik user."""
+    if not user_allergies:
+        return True
+    recipe_allergens = {a.strip().lower() for a in (recipe.allergens or [])}
+    return not (user_allergies & recipe_allergens)
 
 
 def apply_penalty(db: Session, user_id: int, recipe_id: int) -> UserRecipeInteraction:
@@ -78,47 +75,56 @@ def recommend_recipe_for_slot(
     if not recipes:
         return None
 
-    if exclude_recipe_id is not None:
-        pool = [r for r in recipes if r.id != exclude_recipe_id]
-        if not pool:
-            pool = recipes
-    else:
+    # Kecualikan resep yang sedang di-regenerate
+    pool = [r for r in recipes if r.id != exclude_recipe_id] if exclude_recipe_id else recipes
+    if not pool:
         pool = recipes
 
-    # Hard-filter by user budget and allergens
+    # ── Ambil preferensi user ──────────────────────────────────────────────
     preference = db.query(Preference).filter(Preference.user_id == user_id).first()
+
+    user_allergies: set[str] = set()
+    per_meal_budget: float = 0.0
+
     if preference:
         per_meal_budget = (preference.daily_budget or 0) / 3
-        user_allergies = set(
+        user_allergies = {
             a.strip().lower()
             for a in (preference.allergies or "").split(",")
             if a.strip()
-        )
+        }
 
-        filtered = []
-        for r in pool:
-            if per_meal_budget > 0 and (r.estimated_cost or 0) > per_meal_budget:
-                continue
-            recipe_allergens = set(
-                a.strip().lower() for a in (r.allergens or [])
-            )
-            if user_allergies & recipe_allergens:
-                continue
-            filtered.append(r)
+    # ── Hard-filter bertingkat (graceful degradation) ──────────────────────
+    #
+    # Tier 1: budget + allergen  → kandidat ideal
+    # Tier 2: allergen only      → longgarkan budget jika Tier 1 terlalu sedikit
+    # Tier 3: full pool          → hanya jika tidak ada preferensi sama sekali
+    #                              ATAU tidak ada resep yang lolos alergen
+    #         (alergen selalu dipertahankan kecuali benar-benar nol pilihan)
 
-        candidates = filtered if filtered else pool
+    def _apply_budget(p: list[Recipe]) -> list[Recipe]:
+        if per_meal_budget <= 0:
+            return p
+        return [r for r in p if (r.estimated_cost or 0) <= per_meal_budget]
+
+    def _apply_allergen(p: list[Recipe]) -> list[Recipe]:
+        if not user_allergies:
+            return p
+        return [r for r in p if _allergen_safe(r, user_allergies)]
+
+    tier1 = _apply_allergen(_apply_budget(pool))
+    if len(tier1) >= _MIN_CANDIDATES:
+        candidates = tier1
     else:
-        candidates = pool
+        # Longgarkan budget, pertahankan alergen
+        tier2 = _apply_allergen(pool)
+        if len(tier2) >= _MIN_CANDIDATES:
+            candidates = tier2
+        else:
+            # Last resort: pakai semua pool (mungkin tidak ada resep aman alergen sama sekali)
+            candidates = pool
 
-    # Filter out recipes that contain the user's allergens
-    pref = db.query(Preference).filter(Preference.user_id == user_id).first()
-    if pref and pref.allergies:
-        allergens = [a.strip().lower() for a in pref.allergies.split(",") if a.strip()]
-        safe = [r for r in candidates if not _has_allergen(r, allergens)]
-        if safe:
-            candidates = safe
-
-    # Build affinity lookup for this user
+    # ── Affinity lookup ────────────────────────────────────────────────────
     interactions = (
         db.query(UserRecipeInteraction)
         .filter(UserRecipeInteraction.user_id == user_id)
@@ -126,20 +132,21 @@ def recommend_recipe_for_slot(
     )
     affinity_map: dict[int, float] = {i.recipe_id: i.affinity_score for i in interactions}
 
-    # Find nutrition maxima for normalisation
-    max_cal = max((r.calories for r in candidates), default=1) or 1
-    max_pro = max((r.protein for r in candidates), default=1) or 1
-    max_carb = max((r.carbs for r in candidates), default=1) or 1
-    max_fat = max((r.fat for r in candidates), default=1) or 1
+    # ── KNN scoring ────────────────────────────────────────────────────────
+    max_cal  = max((r.calories for r in candidates), default=1) or 1
+    max_pro  = max((r.protein  for r in candidates), default=1) or 1
+    max_carb = max((r.carbs    for r in candidates), default=1) or 1
+    max_fat  = max((r.fat      for r in candidates), default=1) or 1
 
-    scored = []
+    scored: list[tuple[float, Recipe]] = []
     for recipe in candidates:
+        affinity = affinity_map.get(recipe.id, INITIAL_AFFINITY)
         features = [
             _norm(recipe.calories, max_cal),
-            _norm(recipe.protein, max_pro),
-            _norm(recipe.carbs, max_carb),
-            _norm(recipe.fat, max_fat),
-            affinity_map.get(recipe.id, INITIAL_AFFINITY),
+            _norm(recipe.protein,  max_pro),
+            _norm(recipe.carbs,    max_carb),
+            _norm(recipe.fat,      max_fat),
+            affinity,
         ]
         dist = _distance(features, _TARGET)
         scored.append((dist, recipe))
@@ -147,8 +154,9 @@ def recommend_recipe_for_slot(
     scored.sort(key=lambda x: x[0])
     top_k = scored[: min(_TOP_K, len(scored))]
 
-    # Weighted-random: lower distance → higher weight
+    # Weighted-random: jarak lebih kecil → bobot lebih tinggi
+    # Tambah sedikit noise agar resep dengan skor sama tidak selalu urut sama
     max_dist = max(d for d, _ in top_k) or 1.0
-    weights = [max_dist - d + 1e-6 for d, _ in top_k]
+    weights = [max_dist - d + random.uniform(0.01, 0.05) for d, _ in top_k]
     (chosen,) = random.choices([r for _, r in top_k], weights=weights, k=1)
     return chosen
