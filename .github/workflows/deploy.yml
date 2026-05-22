@@ -6,8 +6,8 @@ on:
       - main
 
 env:
-  BACKEND_IMAGE: food-over-fuss-backend
-  FRONTEND_IMAGE: food-over-fuss-frontend
+  BACKEND_IMAGE: backend
+  FRONTEND_IMAGE: frontend
 
 jobs:
   # ── Job 1: Build & Push to ACR ─────────────────────────────────────────────
@@ -67,8 +67,8 @@ jobs:
 
             cd ~/food-over-fuss
 
-            ACR_REGISTRY=${{ secrets.AZURE_ACR_SERVER }} docker compose pull
+            docker compose pull
 
-            ACR_REGISTRY=${{ secrets.AZURE_ACR_SERVER }} docker compose up -d
+            docker compose up -d
 
             docker image prune -f
