@@ -1,13 +1,55 @@
 from fastapi import Depends, HTTPException, status, Header, Request
 from sqlalchemy.orm import Session
-from jose import JWTError, jwt
+from jose import jwt, JWTError
 from app.database import SessionLocal
 from app.models import User
+import httpx
 import os
 
 SECRET_KEY = os.getenv("SECRET_KEY", "supersecretkey")
 SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 ALGORITHM = "HS256"
+
+_jwks_cache: dict | None = None
+
+
+def _get_jwks() -> dict | None:
+    global _jwks_cache
+    if _jwks_cache is not None:
+        return _jwks_cache
+    if not SUPABASE_URL:
+        return None
+    try:
+        r = httpx.get(f"{SUPABASE_URL}/auth/v1/.well-known/jwks.json", timeout=5)
+        _jwks_cache = r.json()
+        return _jwks_cache
+    except Exception:
+        return None
+
+
+def _decode_supabase_token(token: str) -> dict:
+    # Try HS256 with legacy JWT secret
+    if SUPABASE_JWT_SECRET:
+        try:
+            return jwt.decode(
+                token, SUPABASE_JWT_SECRET,
+                algorithms=["HS256"],
+                options={"verify_aud": False},
+            )
+        except JWTError:
+            pass
+
+    # Try RS256 via Supabase JWKS
+    jwks = _get_jwks()
+    if jwks:
+        return jwt.decode(
+            token, jwks,
+            algorithms=["RS256"],
+            options={"verify_aud": False},
+        )
+
+    raise JWTError("Unable to verify Supabase token")
 
 
 def get_db():
@@ -24,15 +66,10 @@ def get_current_user(
     db: Session = Depends(get_db),
 ) -> User:
     # ── Path 1: Bearer token dari Supabase (Google OAuth) ──────────────────
-    if authorization and authorization.startswith("Bearer ") and SUPABASE_JWT_SECRET:
+    if authorization and authorization.startswith("Bearer "):
         token = authorization[7:]
         try:
-            payload = jwt.decode(
-                token,
-                SUPABASE_JWT_SECRET,
-                algorithms=[ALGORITHM],
-                options={"verify_aud": False},
-            )
+            payload = _decode_supabase_token(token)
             email: str = payload.get("email", "")
             supabase_id: str = payload.get("sub", "")
 
@@ -57,7 +94,7 @@ def get_current_user(
                     db.commit()
                 return user
         except JWTError:
-            pass  # fall through to cookie auth
+            pass
 
     # ── Path 2: HttpOnly Cookie dari login email/password ──────────────────
     token = request.cookies.get("access_token")
