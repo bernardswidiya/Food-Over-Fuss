@@ -17,7 +17,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
 }
 
 // Sends cookie (email/password users) AND Bearer token (Google OAuth users) if available.
-async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const { data: { session } } = await supabase.auth.getSession();
   return fetch(url, {
     ...options,
