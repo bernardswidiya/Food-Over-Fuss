@@ -15,6 +15,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String)
     email = Column(String, unique=True, index=True)
+    supabase_id = Column(String, unique=True, nullable=True, index=True)
     hashed_password = Column(String, nullable=True)
     auth_provider = Column(String, default="local")
     profile_picture = Column(String, nullable=True)

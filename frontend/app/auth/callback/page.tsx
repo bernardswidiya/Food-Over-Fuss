@@ -1,37 +1,48 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import { getMe, getPreferences } from "@/lib/api";
 
-function AuthCallbackContent() {
+export default function AuthCallbackPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
-    // Backend sudah set HttpOnly Cookie — kita hanya perlu baca query params
-    const hasPreferences = searchParams.get("has_preferences") === "true";
-    const role = searchParams.get("role") || "user";
-    const error = searchParams.get("error");
+    async function handleCallback() {
+      // Supabase processes the URL hash (#access_token=...) automatically.
+      // We wait for the session to be established before redirecting.
+      const { data: { session }, error } = await supabase.auth.getSession();
 
-    if (error) {
-      router.push(`/login?error=${encodeURIComponent(error)}`);
-      return;
+      if (error || !session) {
+        router.push("/login?error=GoogleAuthFailed");
+        return;
+      }
+
+      try {
+        const user = await getMe();
+
+        if (user.role === "admin") {
+          router.push("/admin/dashboard");
+          return;
+        }
+
+        try {
+          await getPreferences();
+          router.push("/dashboard");
+        } catch {
+          router.push("/onboarding");
+        }
+      } catch {
+        router.push("/login?error=GoogleAuthFailed");
+      }
     }
 
-    // Smart routing berdasarkan role
-    if (role === "admin") {
-      router.push("/admin/dashboard");
-    } else if (hasPreferences) {
-      router.push("/dashboard");
-    } else {
-      router.push("/onboarding");
-    }
-  }, [router, searchParams]);
+    // Give supabase-js a tick to process the URL hash before we call getSession
+    const timer = setTimeout(handleCallback, 100);
+    return () => clearTimeout(timer);
+  }, [router]);
 
-  return <AuthCallbackLoading />;
-}
-
-function AuthCallbackLoading() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background-light">
       <div className="flex flex-col items-center gap-4">
@@ -42,13 +53,5 @@ function AuthCallbackLoading() {
         <p className="text-muted font-medium font-body animate-pulse">Menghubungkan ke Google...</p>
       </div>
     </div>
-  );
-}
-
-export default function AuthCallbackPage() {
-  return (
-    <Suspense fallback={<AuthCallbackLoading />}>
-      <AuthCallbackContent />
-    </Suspense>
   );
 }

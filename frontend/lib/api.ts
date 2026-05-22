@@ -1,6 +1,8 @@
+import { supabase } from "@/lib/supabase";
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
-// ── Shared ──
+// ── Shared ────────────────────────────────────────────────────────────────────
 
 export interface ApiError {
   detail: string;
@@ -14,18 +16,24 @@ async function handleResponse<T>(res: Response): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const { data: { session } } = await supabase.auth.getSession();
   return fetch(url, {
     ...options,
-    credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      ...(session?.access_token && { Authorization: `Bearer ${session.access_token}` }),
       ...options.headers,
     },
   });
 }
 
-// ── Auth ──
+async function getAuthHeader(): Promise<Record<string, string>> {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
 
 export interface LoginPayload {
   email: string;
@@ -54,23 +62,38 @@ export interface LoginResponse {
 }
 
 export async function loginUser(payload: LoginPayload): Promise<LoginResponse> {
-  const res = await authFetch(`${API_BASE_URL}/api/auth/login`, {
-    method: "POST",
-    body: JSON.stringify(payload),
+  const { error } = await supabase.auth.signInWithPassword({
+    email: payload.email,
+    password: payload.password,
   });
-  return handleResponse<LoginResponse>(res);
+  if (error) throw new Error(error.message);
+
+  const user = await getMe();
+
+  let has_preferences = false;
+  try {
+    await getPreferences();
+    has_preferences = true;
+  } catch {
+    has_preferences = false;
+  }
+
+  return { message: "Login berhasil", has_preferences, role: user.role, user };
 }
 
 export async function registerUser(payload: RegisterPayload): Promise<UserResponse> {
-  const res = await authFetch(`${API_BASE_URL}/api/auth/register`, {
-    method: "POST",
-    body: JSON.stringify(payload),
+  const { data, error } = await supabase.auth.signUp({
+    email: payload.email,
+    password: payload.password,
+    options: { data: { full_name: payload.name } },
   });
-  return handleResponse<UserResponse>(res);
+  if (error) throw new Error(error.message);
+  if (!data.session) throw new Error("Pendaftaran berhasil! Silakan cek email untuk konfirmasi.");
+  return await getMe();
 }
 
 export async function logoutUser(): Promise<void> {
-  await authFetch(`${API_BASE_URL}/api/auth/logout`, { method: "POST" });
+  await supabase.auth.signOut();
 }
 
 export async function getMe(): Promise<UserResponse> {
@@ -79,28 +102,30 @@ export async function getMe(): Promise<UserResponse> {
 }
 
 export function loginWithGoogle(): void {
-  window.location.href = `${API_BASE_URL}/api/auth/google`;
+  const redirectTo =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/auth/callback`
+      : "http://localhost:3000/auth/callback";
+
+  supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
 }
 
-// ── Users / Avatar ──
+// ── Users / Avatar ────────────────────────────────────────────────────────────
 
 export async function uploadAvatar(file: File): Promise<UserResponse> {
+  const headers = await getAuthHeader();
   const formData = new FormData();
   formData.append("file", file);
-
   const res = await fetch(`${API_BASE_URL}/api/users/avatar`, {
     method: "POST",
-    credentials: "include",
+    headers,
     body: formData,
-    // Note: Do not set Content-Type header for FormData, browser will set it with boundary
   });
   return handleResponse<UserResponse>(res);
 }
 
 export async function deleteAvatar(): Promise<UserResponse> {
-  const res = await authFetch(`${API_BASE_URL}/api/users/avatar`, {
-    method: "DELETE",
-  });
+  const res = await authFetch(`${API_BASE_URL}/api/users/avatar`, { method: "DELETE" });
   return handleResponse<UserResponse>(res);
 }
 
@@ -108,7 +133,7 @@ export async function deleteAccount(): Promise<void> {
   await authFetch(`${API_BASE_URL}/api/users/me`, { method: "DELETE" });
 }
 
-// ── Preferences (Onboarding / Settings) ──
+// ── Preferences ───────────────────────────────────────────────────────────────
 
 export interface PreferencesPayload {
   diet_goal: string;
@@ -137,7 +162,7 @@ export async function getPreferences(): Promise<PreferencesResponse> {
   return handleResponse<PreferencesResponse>(res);
 }
 
-// ── Meals ──
+// ── Meals ─────────────────────────────────────────────────────────────────────
 
 export interface DailyMenuResponse {
   id: number;
@@ -189,7 +214,7 @@ export async function clearMeal(menuId: number): Promise<void> {
   await authFetch(`${API_BASE_URL}/api/meals/${menuId}`, { method: "DELETE" });
 }
 
-// ── Groceries ──
+// ── Groceries ─────────────────────────────────────────────────────────────────
 
 export interface AggregatedGroceryItem {
   name: string;
@@ -202,20 +227,21 @@ export async function getGroceries(startDate: string, endDate: string, sortBy: s
   return handleResponse<AggregatedGroceryItem[]>(res);
 }
 
-// ── Admin ──
+// ── Admin ─────────────────────────────────────────────────────────────────────
 
 export async function uploadRecipeImage(file: File): Promise<{ image_url: string }> {
+  const headers = await getAuthHeader();
   const formData = new FormData();
   formData.append("file", file);
   const res = await fetch(`${API_BASE_URL}/api/admin/recipes/upload-image`, {
     method: "POST",
-    credentials: "include",
+    headers,
     body: formData,
   });
   return handleResponse<{ image_url: string }>(res);
 }
 
-// ── Chat ──
+// ── Chat ──────────────────────────────────────────────────────────────────────
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -235,25 +261,20 @@ export async function sendChatMessage(messages: ChatMessage[]): Promise<ChatResp
   return handleResponse<ChatResponse>(res);
 }
 
-// ── Password Reset ──
+// ── Password Reset (via Supabase) ─────────────────────────────────────────────
 
 export async function forgotPassword(email: string): Promise<{ message: string }> {
-  const res = await authFetch(`${API_BASE_URL}/api/auth/forgot-password`, {
-    method: "POST",
-    body: JSON.stringify({ email }),
-  });
-  return handleResponse<{ message: string }>(res);
+  const redirectTo =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/reset-password`
+      : "http://localhost:3000/reset-password";
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+  if (error) throw new Error(error.message);
+  return { message: "Email reset password telah dikirim. Silakan cek inbox Anda." };
 }
 
-export async function resetPassword(token: string, new_password: string): Promise<{ message: string }> {
-  const res = await authFetch(`${API_BASE_URL}/api/auth/reset-password`, {
-    method: "POST",
-    body: JSON.stringify({ token, new_password }),
-  });
-  return handleResponse<{ message: string }>(res);
-}
-
-// ── Notifications ──
+// ── Notifications ─────────────────────────────────────────────────────────────
 
 export interface NotificationItem {
   id: number;
