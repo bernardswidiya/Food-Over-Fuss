@@ -16,10 +16,12 @@ async function handleResponse<T>(res: Response): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+// Sends cookie (email/password users) AND Bearer token (Google OAuth users) if available.
 async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const { data: { session } } = await supabase.auth.getSession();
   return fetch(url, {
     ...options,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...(session?.access_token && { Authorization: `Bearer ${session.access_token}` }),
@@ -61,39 +63,34 @@ export interface LoginResponse {
   user: UserResponse;
 }
 
+// Email/password login — backend sets HttpOnly cookie
 export async function loginUser(payload: LoginPayload): Promise<LoginResponse> {
-  const { error } = await supabase.auth.signInWithPassword({
-    email: payload.email,
-    password: payload.password,
+  const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
   });
-  if (error) throw new Error(error.message);
-
-  const user = await getMe();
-
-  let has_preferences = false;
-  try {
-    await getPreferences();
-    has_preferences = true;
-  } catch {
-    has_preferences = false;
-  }
-
-  return { message: "Login berhasil", has_preferences, role: user.role, user };
+  return handleResponse<LoginResponse>(res);
 }
 
+// Email/password register — backend creates user
 export async function registerUser(payload: RegisterPayload): Promise<UserResponse> {
-  const { data, error } = await supabase.auth.signUp({
-    email: payload.email,
-    password: payload.password,
-    options: { data: { full_name: payload.name } },
+  const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
   });
-  if (error) throw new Error(error.message);
-  if (!data.session) throw new Error("Pendaftaran berhasil! Silakan cek email untuk konfirmasi.");
-  return await getMe();
+  return handleResponse<UserResponse>(res);
 }
 
+// Logout — clears backend cookie AND Supabase session (if Google user)
 export async function logoutUser(): Promise<void> {
-  await supabase.auth.signOut();
+  await Promise.allSettled([
+    fetch(`${API_BASE_URL}/api/auth/logout`, { method: "POST", credentials: "include" }),
+    supabase.auth.signOut(),
+  ]);
 }
 
 export async function getMe(): Promise<UserResponse> {
@@ -101,6 +98,7 @@ export async function getMe(): Promise<UserResponse> {
   return handleResponse<UserResponse>(res);
 }
 
+// Google OAuth — goes through Supabase (HTTPS), not backend
 export function loginWithGoogle(): void {
   const redirectTo =
     typeof window !== "undefined"
@@ -118,6 +116,7 @@ export async function uploadAvatar(file: File): Promise<UserResponse> {
   formData.append("file", file);
   const res = await fetch(`${API_BASE_URL}/api/users/avatar`, {
     method: "POST",
+    credentials: "include",
     headers,
     body: formData,
   });
@@ -222,7 +221,7 @@ export interface AggregatedGroceryItem {
   source_meals: string[];
 }
 
-export async function getGroceries(startDate: string, endDate: string, sortBy: string = "quantity_desc"): Promise<AggregatedGroceryItem[]> {
+export async function getGroceries(startDate: string, endDate: string, sortBy = "quantity_desc"): Promise<AggregatedGroceryItem[]> {
   const res = await authFetch(`${API_BASE_URL}/api/groceries?start_date=${startDate}&end_date=${endDate}&sort_by=${sortBy}`);
   return handleResponse<AggregatedGroceryItem[]>(res);
 }
@@ -235,6 +234,7 @@ export async function uploadRecipeImage(file: File): Promise<{ image_url: string
   formData.append("file", file);
   const res = await fetch(`${API_BASE_URL}/api/admin/recipes/upload-image`, {
     method: "POST",
+    credentials: "include",
     headers,
     body: formData,
   });
@@ -261,17 +261,24 @@ export async function sendChatMessage(messages: ChatMessage[]): Promise<ChatResp
   return handleResponse<ChatResponse>(res);
 }
 
-// ── Password Reset (via Supabase) ─────────────────────────────────────────────
+// ── Password Reset (email/password users — via backend SMTP) ──────────────────
 
 export async function forgotPassword(email: string): Promise<{ message: string }> {
-  const redirectTo =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/reset-password`
-      : "http://localhost:3000/reset-password";
+  const res = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  return handleResponse<{ message: string }>(res);
+}
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
-  if (error) throw new Error(error.message);
-  return { message: "Email reset password telah dikirim. Silakan cek inbox Anda." };
+export async function resetPassword(token: string, new_password: string): Promise<{ message: string }> {
+  const res = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, new_password }),
+  });
+  return handleResponse<{ message: string }>(res);
 }
 
 // ── Notifications ─────────────────────────────────────────────────────────────

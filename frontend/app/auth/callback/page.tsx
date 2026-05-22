@@ -1,32 +1,22 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getMe, getPreferences } from "@/lib/api";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
+  const handled = useRef(false);
 
   useEffect(() => {
-    async function handleCallback() {
-      // Supabase processes the URL hash (#access_token=...) automatically.
-      // We wait for the session to be established before redirecting.
-      const { data: { session }, error } = await supabase.auth.getSession();
-
-      if (error || !session) {
-        router.push("/login?error=GoogleAuthFailed");
-        return;
-      }
+    async function handleSession() {
+      if (handled.current) return;
+      handled.current = true;
 
       try {
         const user = await getMe();
-
-        if (user.role === "admin") {
-          router.push("/admin/dashboard");
-          return;
-        }
-
+        if (user.role === "admin") { router.push("/admin/dashboard"); return; }
         try {
           await getPreferences();
           router.push("/dashboard");
@@ -38,9 +28,27 @@ export default function AuthCallbackPage() {
       }
     }
 
-    // Give supabase-js a tick to process the URL hash before we call getSession
-    const timer = setTimeout(handleCallback, 100);
-    return () => clearTimeout(timer);
+    // Listen for SIGNED_IN event from Supabase (fired after hash is processed)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session) {
+        handleSession();
+      }
+    });
+
+    // Also check if session already exists (user refreshed the callback page)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) handleSession();
+    });
+
+    // Fallback: redirect to login if nothing happens within 10s
+    const timeout = setTimeout(() => {
+      if (!handled.current) router.push("/login?error=GoogleAuthFailed");
+    }, 10000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, [router]);
 
   return (
