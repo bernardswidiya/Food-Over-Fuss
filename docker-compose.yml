@@ -1,0 +1,22 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    image: ${ACR_REGISTRY:-local}/food-over-fuss-backend:latest
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+    image: ${ACR_REGISTRY:-local}/food-over-fuss-frontend:latest
+    ports:
+      - "80:3000"
+    env_file:
+      - ./frontend/.env
+    depends_on:
+      - backend
+    restart: always
