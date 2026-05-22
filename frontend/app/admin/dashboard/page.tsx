@@ -5,6 +5,8 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { logoutUser, uploadRecipeImage } from "@/lib/api";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "${API_BASE}";
+
 // ── Types ──────────────────────────────────────────────────────────────────
 
 interface IngredientItem {
@@ -166,7 +168,7 @@ export default function AdminDashboardPage() {
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/api/admin/stats", { credentials: "include" });
+      const res = await fetch("${API_BASE}/api/admin/stats", { credentials: "include" });
       if (res.ok) setStats(await res.json());
     } catch { /* silently fail */ }
     finally { setStatsLoading(false); }
@@ -175,7 +177,7 @@ export default function AdminDashboardPage() {
   const fetchRecipes = useCallback(async () => {
     setRecipesLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/api/admin/recipes", { credentials: "include" });
+      const res = await fetch("${API_BASE}/api/admin/recipes", { credentials: "include" });
       if (res.ok) setRecipes(await res.json());
     } catch { /* silently fail */ }
     finally { setRecipesLoading(false); }
@@ -184,7 +186,7 @@ export default function AdminDashboardPage() {
   const fetchUsers = useCallback(async () => {
     setUsersLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/api/admin/users", { credentials: "include" });
+      const res = await fetch("${API_BASE}/api/admin/users", { credentials: "include" });
       if (res.ok) setUsers(await res.json());
     } catch { /* silently fail */ }
     finally { setUsersLoading(false); }
@@ -274,7 +276,7 @@ export default function AdminDashboardPage() {
       allergens: mSelectedAllergens,
     };
     try {
-      const res = await fetch(`http://localhost:8000/api/admin/recipes/${editModalId}`, {
+      const res = await fetch(`${API_BASE}/api/admin/recipes/${editModalId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -291,7 +293,7 @@ export default function AdminDashboardPage() {
     if (!deleteConfirmId) return;
     setDeleting(true);
     try {
-      const res = await fetch(`http://localhost:8000/api/admin/recipes/${deleteConfirmId}`, {
+      const res = await fetch(`${API_BASE}/api/admin/recipes/${deleteConfirmId}`, {
         method: "DELETE",
         credentials: "include",
       });
@@ -321,7 +323,7 @@ export default function AdminDashboardPage() {
       allergens: selectedAllergens,
     };
     try {
-      const res = await fetch("http://localhost:8000/api/admin/recipes", {
+      const res = await fetch("${API_BASE}/api/admin/recipes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -419,7 +421,7 @@ export default function AdminDashboardPage() {
     if (!newRole) return;
     setSavingUserId(userId);
     try {
-      const res = await fetch(`http://localhost:8000/api/admin/users/${userId}/role`, {
+      const res = await fetch(`${API_BASE}/api/admin/users/${userId}/role`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

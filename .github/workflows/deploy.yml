@@ -44,7 +44,7 @@ jobs:
           context: ./frontend
           push: true
           tags: ${{ secrets.AZURE_ACR_SERVER }}/${{ env.FRONTEND_IMAGE }}:latest
-          build-args: NEXT_PUBLIC_API_URL=http://${{ secrets.VM_HOST }}:8000
+          build-args: NEXT_PUBLIC_API_BASE_URL=http://${{ secrets.VM_HOST }}:8000
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

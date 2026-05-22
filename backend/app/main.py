@@ -17,9 +17,8 @@ app.add_middleware(
 )
 
 # Konfigurasi CORS
-origins = [
-    "http://localhost:3000",
-]
+_frontend_url = os.getenv("FRONTEND_URL", "")
+origins = list(filter(None, ["http://localhost:3000", _frontend_url]))
 
 app.add_middleware(
     CORSMiddleware,
