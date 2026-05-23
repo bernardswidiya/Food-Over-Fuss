@@ -49,6 +49,7 @@ FoodOverFuss membantu masyarakat urban Indonesia merencanakan makan mingguan sec
       <img src="https://img.shields.io/badge/-TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white"/>
       <img src="https://img.shields.io/badge/-Tailwind%20CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white"/>
       <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white"/>
+      <img src="https://img.shields.io/badge/-Google%20OAuth-4285F4?style=for-the-badge&logo=google&logoColor=white"/>
 
 ### Backend
 | Teknologi | Versi | Keterangan |
@@ -71,8 +72,7 @@ FoodOverFuss membantu masyarakat urban Indonesia merencanakan makan mingguan sec
       <img src="https://img.shields.io/badge/bcrypt-2A2A2A?style=for-the-badge&logo=securityscorecard&logoColor=white"/>
       <img src="https://img.shields.io/badge/scikit--learn-F7931E?style=for-the-badge&logo=scikitlearn&logoColor=white"/>
       <img src="https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white"/>
-      <img src="https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white"/>
-      <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white"/>
+      
 
 ### Infrastruktur
 | Komponen | Detail |
