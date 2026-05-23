@@ -2,14 +2,14 @@
 
 > Sistem perencana menu harian berbasis AI yang personal, hemat, dan cerdas.
 
-FoodOverFuss membantu masyarakat urban Indonesia merencanakan makan mingguan secara otomatis dengan mempertimbangkan keseimbangan nutrisi (kalori, protein, karbo, lemak), anggaran harian, dan kondisi khusus seperti alergi atau tujuan diet. Sistem rekomendasi menggunakan algoritma KNN-Affinity yang belajar dari preferensi pengguna secara adaptif — semakin sering digunakan, semakin personal rekomendasinya.
+FoodOverFuss membantu masyarakat urban Indonesia merencanakan makan mingguan secara otomatis dengan mempertimbangkan keseimbangan nutrisi (kalori, protein, karbo, lemak), anggaran harian, dan kondisi khusus seperti alergi atau tujuan diet. Sistem rekomendasi menggunakan algoritma KNN-Affinity yang belajar dari preferensi pengguna secara adaptif. Semakin sering digunakan, semakin personal rekomendasinya.
 
 **Live Demo:** [http://foodoverfuss.southeastasia.cloudapp.azure.com](http://foodoverfuss.southeastasia.cloudapp.azure.com)  
 **API Docs:** [http://foodoverfuss.southeastasia.cloudapp.azure.com:8000/docs](http://foodoverfuss.southeastasia.cloudapp.azure.com:8000/docs)
 
 ---
 
-## Tim Pengembang
+## 👨‍💻 Tim Pengembang
 
 **Kelompok Nonstop Notif — Universitas Gadjah Mada**
 
@@ -33,7 +33,7 @@ FoodOverFuss membantu masyarakat urban Indonesia merencanakan makan mingguan sec
 
 ---
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 ### Frontend
 | Teknologi | Versi | Keterangan |
@@ -43,6 +43,12 @@ FoodOverFuss membantu masyarakat urban Indonesia merencanakan makan mingguan sec
 | TypeScript | 5.x | |
 | Tailwind CSS | 4.x | |
 | Supabase JS | latest | Google OAuth client |
+<p>
+      <img src="https://img.shields.io/badge/-Next.js-000000?style=for-the-badge&logo=next.js&logoColor=white"/>
+      <img src="https://img.shields.io/badge/-React-61DAFB?style=for-the-badge&logo=react&logoColor=black"/>
+      <img src="https://img.shields.io/badge/-TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white"/>
+      <img src="https://img.shields.io/badge/-Tailwind%20CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white"/>
+      <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white"/>
 
 ### Backend
 | Teknologi | Versi | Keterangan |
@@ -55,6 +61,18 @@ FoodOverFuss membantu masyarakat urban Indonesia merencanakan makan mingguan sec
 | passlib + bcrypt | 1.7.4 / 4.0.1 | Password hashing |
 | scikit-learn | ≥1.4.0 | KNN feature scoring |
 | OpenAI SDK | ≥1.30.0 | GPT-4o chatbot |
+
+<p>
+      <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white"/>
+      <img src="https://img.shields.io/badge/SQLAlchemy-D71F00?style=for-the-badge&logo=sqlalchemy&logoColor=white"/>
+      <img src="https://img.shields.io/badge/Pydantic-E92063?style=for-the-badge&logo=pydantic&logoColor=white"/>
+      <img src="https://img.shields.io/badge/Uvicorn-4051B5?style=for-the-badge&logo=uvicorn&logoColor=white"/>
+      <img src="https://img.shields.io/badge/Python--Jose-3776AB?style=for-the-badge&logo=python&logoColor=white"/>
+      <img src="https://img.shields.io/badge/bcrypt-2A2A2A?style=for-the-badge&logo=securityscorecard&logoColor=white"/>
+      <img src="https://img.shields.io/badge/scikit--learn-F7931E?style=for-the-badge&logo=scikitlearn&logoColor=white"/>
+      <img src="https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white"/>
+      <img src="https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white"/>
+      <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white"/>
 
 ### Infrastruktur
 | Komponen | Detail |
@@ -94,7 +112,7 @@ Browser (Port 80)
 
 ---
 
-## Menjalankan Secara Lokal
+## ⚙️ Menjalankan Secara Lokal
 
 ### Prasyarat
 
@@ -201,7 +219,7 @@ alembic downgrade -1
 
 ---
 
-## Struktur Proyek
+## 📂 Struktur Proyek
 
 ```
 food-over-fuss/
@@ -282,6 +300,6 @@ Dokumentasi lengkap tersedia di `/docs` (Swagger UI).
 
 ---
 
-## Lisensi
+## 📄 Lisensi
 
 Proyek ini dibuat untuk keperluan akademik — **Mata Kuliah Senior Project, Universitas Gadjah Mada 2025**.
