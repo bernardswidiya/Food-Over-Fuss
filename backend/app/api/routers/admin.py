@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.models import Recipe, User, MealPlan
+from app.models import Recipe, User, MealPlan, DailyMenu, UserRecipeInteraction
 from app.schemas import RecipeCreate, RecipeUpdate, RecipeResponse, UserRoleUpdate
 from app.api.dependencies import get_db, get_admin_user
 from app.utils.storage import upload_image_to_azure
@@ -91,6 +91,17 @@ def delete_recipe(
     db_recipe = db.query(Recipe).filter(Recipe.id == recipe_id).first()
     if not db_recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
+
+    # Null-kan recipe_id di semua DailyMenu yang masih referensi resep ini.
+    # Data nama/makro di DailyMenu tetap aman karena sudah di-copy saat generate.
+    db.query(DailyMenu).filter(DailyMenu.recipe_id == recipe_id).update(
+        {"recipe_id": None}, synchronize_session=False
+    )
+
+    # Hapus semua interaksi preferensi user untuk resep ini.
+    db.query(UserRecipeInteraction).filter(
+        UserRecipeInteraction.recipe_id == recipe_id
+    ).delete(synchronize_session=False)
 
     db.delete(db_recipe)
     db.commit()
