@@ -3,24 +3,36 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { getMe, getPreferences } from "@/lib/api";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
   const handled = useRef(false);
 
   useEffect(() => {
-    async function handleSession() {
+    async function handleSession(accessToken: string) {
       if (handled.current) return;
       handled.current = true;
 
       try {
-        const user = await getMe();
-        if (user.role === "admin") { router.push("/admin/dashboard"); return; }
-        try {
-          await getPreferences();
+        const res = await fetch(`${API_BASE_URL}/api/auth/google-session`, {
+          method: "POST",
+          credentials: "include",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+
+        if (!res.ok) {
+          router.push("/login?error=GoogleAuthFailed");
+          return;
+        }
+
+        const data = await res.json();
+        if (data.role === "admin") {
+          router.push("/admin/dashboard");
+        } else if (data.has_preferences) {
           router.push("/dashboard");
-        } catch {
+        } else {
           router.push("/onboarding");
         }
       } catch {
@@ -28,19 +40,16 @@ export default function AuthCallbackPage() {
       }
     }
 
-    // Listen for SIGNED_IN event from Supabase (fired after hash is processed)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session) {
-        handleSession();
+      if (event === "SIGNED_IN" && session?.access_token) {
+        handleSession(session.access_token);
       }
     });
 
-    // Also check if session already exists (user refreshed the callback page)
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) handleSession();
+      if (session?.access_token) handleSession(session.access_token);
     });
 
-    // Fallback: redirect to login if nothing happens within 10s
     const timeout = setTimeout(() => {
       if (!handled.current) router.push("/login?error=GoogleAuthFailed");
     }, 10000);

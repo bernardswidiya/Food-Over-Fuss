@@ -176,6 +176,7 @@ export interface DailyMenuResponse {
   ingredients: string | null;
   recipe_id: number | null;
   is_cleared: boolean;
+  image_url: string | null;
 }
 
 export interface MealPlanResponse {

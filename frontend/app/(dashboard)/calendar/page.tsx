@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import {
   getMeals,
   generateWeekMeals,
@@ -311,9 +313,19 @@ export default function CalendarPage() {
                             className="bg-surface rounded-[20px] p-3 border border-transparent hover:border-primary/20 group relative overflow-hidden transition-all"
                           >
                             <div className="aspect-video rounded-xl bg-slate-200 mb-3 relative overflow-hidden flex items-center justify-center">
-                              <span className="material-symbols-outlined text-slate-300 text-3xl">
-                                restaurant
-                              </span>
+                              {meal.image_url ? (
+                                <Image
+                                  src={meal.image_url}
+                                  alt={meal.recipe_name}
+                                  fill
+                                  unoptimized
+                                  className="object-cover"
+                                />
+                              ) : (
+                                <span className="material-symbols-outlined text-slate-300 text-3xl">
+                                  restaurant
+                                </span>
+                              )}
                             </div>
 
                             <h4 className="font-bold text-sm text-text-main mb-1 truncate">
@@ -326,6 +338,16 @@ export default function CalendarPage() {
 
                             {/* ACTIONS */}
                             <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                              <Link
+                                href={`/recipe/${meal.id}`}
+                                className="w-10 h-10 rounded-full bg-surface border border-gray-200 text-text-main hover:bg-primary hover:text-white hover:border-primary flex items-center justify-center transition-colors"
+                                title="Lihat Detail"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">
+                                  open_in_new
+                                </span>
+                              </Link>
+
                               <button
                                 onClick={() =>
                                   handleRegenerateMeal(meal.id)

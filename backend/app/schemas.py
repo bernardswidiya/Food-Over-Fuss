@@ -61,6 +61,7 @@ class DailyMenuBase(BaseModel):
 class DailyMenuResponse(DailyMenuBase):
     id: int
     meal_plan_id: int
+    image_url: Optional[str] = None
 
     class Config:
         from_attributes = True

@@ -1,14 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Request, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request, BackgroundTasks, Header
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
-from jose import jwt
+from jose import jwt, JWTError
 from datetime import datetime, timedelta, timezone
 import os
 import secrets
 
 from app.models import User, Preference
 from app.schemas import UserCreate, UserResponse, LoginRequest, LoginResponse, ForgotPasswordRequest, ResetPasswordRequest
-from app.api.dependencies import get_db, get_current_user
+from app.api.dependencies import get_db, get_current_user, _decode_supabase_token
 from app.utils.email import send_reset_password_email
 
 router = APIRouter()
@@ -101,6 +101,72 @@ def forgot_password(
         db.commit()
         background_tasks.add_task(send_reset_password_email, payload.email, token)
     return {"message": "Jika email terdaftar, link reset password telah dikirim."}
+
+
+@router.post("/google-session", response_model=LoginResponse)
+def google_session(
+    response: Response,
+    authorization: str = Header(default=None),
+    db: Session = Depends(get_db),
+):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing Bearer token")
+
+    token = authorization[7:]
+    try:
+        payload = _decode_supabase_token(token)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Token Supabase tidak valid")
+
+    email: str = payload.get("email", "")
+    supabase_id: str = payload.get("sub", "")
+    if not email:
+        raise HTTPException(status_code=401, detail="Email tidak ditemukan di token")
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        metadata = payload.get("user_metadata") or {}
+        name = metadata.get("full_name") or metadata.get("name") or email.split("@")[0]
+        picture = metadata.get("picture") or metadata.get("avatar_url")
+        user = User(
+            email=email,
+            name=name,
+            hashed_password=None,
+            supabase_id=supabase_id,
+            auth_provider="google",
+            profile_picture=picture,
+            role="user",
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    else:
+        updated = False
+        if not user.supabase_id:
+            user.supabase_id = supabase_id
+            updated = True
+        if not user.auth_provider or user.auth_provider == "local":
+            user.auth_provider = "google"
+            updated = True
+        if updated:
+            db.commit()
+
+    session_token = create_access_token({"sub": str(user.id)})
+    response.set_cookie(
+        key="access_token",
+        value=session_token,
+        httponly=True,
+        samesite="lax",
+        secure=False,
+        max_age=60 * 60 * 24 * 7,
+    )
+    has_preferences = db.query(Preference).filter(Preference.user_id == user.id).first() is not None
+    return LoginResponse(
+        message="Google session created",
+        has_preferences=has_preferences,
+        role=user.role,
+        user=user,
+    )
 
 
 @router.post("/reset-password")

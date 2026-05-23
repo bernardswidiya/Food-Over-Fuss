@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect, useCallback } from "react";
 import { getMeals } from "@/lib/api";
 import type { DailyMenuResponse } from "@/lib/api";
@@ -177,8 +178,18 @@ export default function DashboardPage() {
                 const meta = mealMeta[meal.meal_type] || mealMeta.sarapan;
                 return (
                   <Link key={meal.id} href={`/recipe/${meal.id}`} className="group bg-white rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-md hover:shadow-lg transition-all border border-gray-200 cursor-pointer hover:-translate-y-0.5">
-                    <div className="md:w-1/3 h-48 md:h-auto overflow-hidden bg-slate-100 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-6xl text-slate-300">{meta.icon}</span>
+                    <div className="md:w-1/3 h-48 md:h-auto overflow-hidden bg-slate-100 flex items-center justify-center relative">
+                      {meal.image_url ? (
+                        <Image
+                          src={meal.image_url}
+                          alt={meal.recipe_name}
+                          fill
+                          unoptimized
+                          className="object-cover"
+                        />
+                      ) : (
+                        <span className="material-symbols-outlined text-6xl text-slate-300">{meta.icon}</span>
+                      )}
                     </div>
                     <div className="md:w-2/3 p-6 md:p-8 flex flex-col justify-between">
                       <div>

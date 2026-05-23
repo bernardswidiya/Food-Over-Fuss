@@ -19,13 +19,39 @@ MEAL_TYPES = ["sarapan", "siang", "malam"]
 
 @router.get("/", response_model=List[DailyMenuResponse])
 def get_meals(start_date: date, end_date: date, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    from sqlalchemy.orm import joinedload
     menus = db.query(DailyMenu).join(MealPlan).filter(
         MealPlan.user_id == current_user.id,
         DailyMenu.date >= start_date,
         DailyMenu.date <= end_date,
         DailyMenu.is_cleared == False
     ).order_by(DailyMenu.date, DailyMenu.meal_type).all()
-    return menus
+
+    recipe_ids = [m.recipe_id for m in menus if m.recipe_id]
+    recipes_by_id = {}
+    if recipe_ids:
+        recipes = db.query(Recipe).filter(Recipe.id.in_(recipe_ids)).all()
+        recipes_by_id = {r.id: r for r in recipes}
+
+    result = []
+    for menu in menus:
+        d = {
+            "id": menu.id,
+            "meal_plan_id": menu.meal_plan_id,
+            "date": menu.date,
+            "meal_type": menu.meal_type,
+            "recipe_name": menu.recipe_name,
+            "calories": menu.calories,
+            "protein": menu.protein,
+            "carbs": menu.carbs,
+            "fat": menu.fat,
+            "ingredients": menu.ingredients,
+            "recipe_id": menu.recipe_id,
+            "is_cleared": menu.is_cleared,
+            "image_url": recipes_by_id[menu.recipe_id].image_url if menu.recipe_id and menu.recipe_id in recipes_by_id else None,
+        }
+        result.append(d)
+    return result
 
 @router.get("/history", response_model=List[MealPlanResponse])
 def get_meal_history(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
