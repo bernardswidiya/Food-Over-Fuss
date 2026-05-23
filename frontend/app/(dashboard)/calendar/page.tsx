@@ -306,7 +306,8 @@ export default function CalendarPage() {
                         mt.key
                       );
 
-                      if (meal) {
+                      // Slot terisi
+                      if (meal && !meal.is_cleared) {
                         return (
                           <div
                             key={i}
@@ -349,9 +350,7 @@ export default function CalendarPage() {
                               </Link>
 
                               <button
-                                onClick={() =>
-                                  handleRegenerateMeal(meal.id)
-                                }
+                                onClick={() => handleRegenerateMeal(meal.id)}
                                 className="w-10 h-10 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-white flex items-center justify-center transition-colors"
                                 title="Ganti Menu Ini"
                               >
@@ -361,9 +360,7 @@ export default function CalendarPage() {
                               </button>
 
                               <button
-                                onClick={() =>
-                                  handleClearMeal(meal.id)
-                                }
+                                onClick={() => handleClearMeal(meal.id)}
                                 className="w-10 h-10 rounded-full bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-colors"
                                 title="Kosongkan"
                               >
@@ -376,6 +373,34 @@ export default function CalendarPage() {
                         );
                       }
 
+                      // Slot dikosongkan — tampilkan tombol isi menu
+                      if (meal && meal.is_cleared) {
+                        return (
+                          <div
+                            key={i}
+                            className="bg-surface/50 rounded-[20px] p-3 border-2 border-dashed border-primary/30 flex flex-col items-center justify-center min-h-[140px] gap-2 group hover:border-primary transition-colors"
+                          >
+                            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                              <span className="material-symbols-outlined text-[20px]">
+                                restaurant
+                              </span>
+                            </div>
+                            <span className="text-xs text-muted font-medium text-center leading-tight">
+                              Slot kosong
+                            </span>
+                            <button
+                              onClick={() => handleRegenerateMeal(meal.id)}
+                              className="mt-1 flex items-center gap-1 text-xs font-bold text-primary hover:text-primary-hover transition-colors"
+                              title="Isi menu untuk slot ini"
+                            >
+                              <span className="material-symbols-outlined text-[14px]">add_circle</span>
+                              Isi Menu
+                            </button>
+                          </div>
+                        );
+                      }
+
+                      // Tidak ada meal plan sama sekali untuk minggu ini
                       return (
                         <div
                           key={i}

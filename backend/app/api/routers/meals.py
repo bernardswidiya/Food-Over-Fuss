@@ -25,7 +25,6 @@ def get_meals(start_date: date, end_date: date, current_user: User = Depends(get
         MealPlan.user_id == current_user.id,
         DailyMenu.date >= start_date,
         DailyMenu.date <= end_date,
-        DailyMenu.is_cleared == False
     ).order_by(DailyMenu.date, DailyMenu.meal_type).all()
 
     recipe_ids = [m.recipe_id for m in menus if m.recipe_id]
