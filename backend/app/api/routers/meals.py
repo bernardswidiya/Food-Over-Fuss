@@ -8,6 +8,7 @@ from app.models import MealPlan, DailyMenu, User, Recipe, UserRecipeInteraction
 from app.schemas import (
     MealPlanResponse, MealGenerateRequest, DailyMenuResponse,
     RecipeFeedbackRequest, DetectIngredientsResponse, DetectedIngredient,
+    SetRecipeRequest,
 )
 from app.api.dependencies import get_db, get_current_user
 from app.ai.recommendation import apply_penalty, recommend_recipe_for_slot
@@ -150,6 +151,47 @@ def regenerate_meal(menu_id: int, current_user: User = Depends(get_current_user)
     db.refresh(menu)
     return menu
 
+@router.put("/{menu_id}/set-recipe", response_model=DailyMenuResponse)
+def set_recipe(menu_id: int, req: SetRecipeRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    menu = db.query(DailyMenu).join(MealPlan).filter(
+        DailyMenu.id == menu_id,
+        MealPlan.user_id == current_user.id
+    ).first()
+    if not menu:
+        raise HTTPException(status_code=404, detail="Menu tidak ditemukan")
+
+    recipe = db.query(Recipe).filter(Recipe.id == req.recipe_id, Recipe.is_published == True).first()
+    if not recipe:
+        raise HTTPException(status_code=404, detail="Resep tidak ditemukan")
+
+    menu.recipe_name = recipe.name
+    menu.calories = recipe.calories
+    menu.protein = recipe.protein
+    menu.carbs = recipe.carbs
+    menu.fat = recipe.fat
+    menu.ingredients = json.dumps(recipe.ingredients) if recipe.ingredients else "[]"
+    menu.recipe_id = recipe.id
+    menu.is_cleared = False
+
+    db.commit()
+    db.refresh(menu)
+    return {
+        "id": menu.id,
+        "meal_plan_id": menu.meal_plan_id,
+        "date": menu.date,
+        "meal_type": menu.meal_type,
+        "recipe_name": menu.recipe_name,
+        "calories": menu.calories,
+        "protein": menu.protein,
+        "carbs": menu.carbs,
+        "fat": menu.fat,
+        "ingredients": menu.ingredients,
+        "recipe_id": menu.recipe_id,
+        "is_cleared": menu.is_cleared,
+        "image_url": recipe.image_url,
+    }
+
+
 @router.delete("/{menu_id}")
 def clear_meal(menu_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     menu = db.query(DailyMenu).join(MealPlan).filter(
@@ -282,6 +324,7 @@ def get_meal_alternatives(
                 "image_url": r.image_url,
                 "allergens": r.allergens or [],
                 "estimated_cost": r.estimated_cost or 0,
+                "instructions": r.instructions or [],
             }
             for r in alternatives
         ]

@@ -333,6 +333,14 @@ export async function getMealSubstitute(menuId: number): Promise<RecipeCard> {
   return handleResponse<RecipeCard>(res);
 }
 
+export async function replaceMenuRecipe(menuId: number, recipeId: number): Promise<DailyMenuResponse> {
+  const res = await authFetch(`${API_BASE_URL}/api/meals/${menuId}/set-recipe`, {
+    method: "PUT",
+    body: JSON.stringify({ recipe_id: recipeId }),
+  });
+  return handleResponse<DailyMenuResponse>(res);
+}
+
 // ── Notifications ─────────────────────────────────────────────────────────────
 
 export interface NotificationItem {

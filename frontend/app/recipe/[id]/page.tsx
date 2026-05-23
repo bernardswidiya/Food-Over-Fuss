@@ -3,7 +3,14 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { getMealDetail, getMealAlternatives, getMealSubstitute, MealDetail, RecipeCard } from "@/lib/api";
+import {
+  getMealDetail,
+  getMealAlternatives,
+  getMealSubstitute,
+  replaceMenuRecipe,
+  MealDetail,
+  RecipeCard,
+} from "@/lib/api";
 
 interface IngredientItem {
   name: string;
@@ -56,9 +63,12 @@ function MacroBadge({ label, value, colorClass }: { label: string; value: string
   );
 }
 
-function AlternativeCard({ recipe }: { recipe: RecipeCard }) {
+function AlternativeCard({ recipe, onClick }: { recipe: RecipeCard; onClick: () => void }) {
   return (
-    <div className="min-w-65 w-65 bg-white border border-gray-100 rounded-[24px] p-3 shadow-sm hover:shadow-soft transition-all snap-start shrink-0 flex flex-col gap-3">
+    <button
+      onClick={onClick}
+      className="min-w-65 w-65 bg-white border border-gray-100 rounded-[24px] p-3 shadow-sm hover:shadow-soft hover:border-primary/30 transition-all snap-start shrink-0 flex flex-col gap-3 text-left"
+    >
       <div className="w-full h-32 rounded-xl overflow-hidden relative bg-slate-100">
         {recipe.image_url ? (
           <Image src={recipe.image_url} alt={recipe.name} fill className="object-cover" unoptimized />
@@ -73,6 +83,133 @@ function AlternativeCard({ recipe }: { recipe: RecipeCard }) {
         <div className="flex gap-2 text-[11px] font-bold">
           <span className="bg-surface px-2.5 py-1 rounded-full text-muted">{recipe.calories} Kkal</span>
           <span className="bg-primary/10 text-primary px-2.5 py-1 rounded-full">{recipe.protein}g Protein</span>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+interface RecipeModalProps {
+  recipe: RecipeCard;
+  title: string;
+  onClose: () => void;
+  onSearchAnother?: () => void;
+  onReplace: () => void;
+  replacing: boolean;
+  searchingAnother?: boolean;
+}
+
+function RecipeModal({ recipe, title, onClose, onSearchAnother, onReplace, replacing, searchingAnother }: RecipeModalProps) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Modal Header */}
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
+          <h3 className="font-heading text-xl font-bold">{title}</h3>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-full bg-surface flex items-center justify-center hover:bg-gray-200 transition-colors"
+          >
+            <span className="material-symbols-outlined text-[20px]">close</span>
+          </button>
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="overflow-y-auto flex-1 px-6 pb-2">
+          {/* Recipe Hero */}
+          <div className="w-full h-48 rounded-2xl overflow-hidden relative bg-slate-100 mb-5">
+            {recipe.image_url ? (
+              <Image src={recipe.image_url} alt={recipe.name} fill className="object-cover" unoptimized />
+            ) : (
+              <div className="h-full flex items-center justify-center">
+                <span className="material-symbols-outlined text-5xl text-slate-400">restaurant</span>
+              </div>
+            )}
+            {recipe.prep_time && (
+              <div className="absolute bottom-3 left-3">
+                <div className="bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-bold text-text-main flex items-center gap-1.5 shadow-sm">
+                  <span className="material-symbols-outlined text-[14px] text-muted">schedule</span>
+                  {recipe.prep_time} menit
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Name & Macros */}
+          <h4 className="font-heading text-2xl font-extrabold mb-3 leading-snug">{recipe.name}</h4>
+          <div className="flex flex-wrap gap-2 mb-5">
+            <span className="bg-surface border border-gray-100 px-3 py-1.5 rounded-xl text-[11px] font-bold text-muted">{recipe.calories} Kkal</span>
+            <span className="bg-primary/10 border border-primary/20 text-primary px-3 py-1.5 rounded-xl text-[11px] font-bold">{recipe.protein}g Protein</span>
+            <span className="bg-surface border border-gray-100 px-3 py-1.5 rounded-xl text-[11px] font-bold text-muted">{recipe.carbs}g Karbo</span>
+            <span className="bg-accent/10 border border-accent/20 text-accent px-3 py-1.5 rounded-xl text-[11px] font-bold">{recipe.fat}g Lemak</span>
+          </div>
+
+          {/* Instructions */}
+          {recipe.instructions && recipe.instructions.length > 0 && (
+            <div className="flex flex-col gap-4 mb-2">
+              <h5 className="font-heading font-bold text-base flex items-center gap-2">
+                <span className="material-symbols-outlined text-accent text-[18px]">local_fire_department</span>
+                Cara Membuat
+              </h5>
+              <ol className="flex flex-col gap-3">
+                {recipe.instructions.map((step, idx) => (
+                  <li key={idx} className="flex gap-3">
+                    <div className="w-7 h-7 rounded-full bg-surface text-muted font-heading font-extrabold flex items-center justify-center text-sm shrink-0 border border-gray-200">
+                      {idx + 1}
+                    </div>
+                    <p className="text-muted text-sm leading-relaxed pt-1">{step}</p>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="px-6 pt-4 pb-6 flex flex-col gap-3 border-t border-gray-100 shrink-0">
+          <button
+            onClick={onReplace}
+            disabled={replacing}
+            className="w-full py-3.5 bg-primary hover:bg-primary-hover text-white font-bold rounded-full transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+          >
+            {replacing ? (
+              <>
+                <Spinner />
+                Mengganti...
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                Ganti dengan ini
+              </>
+            )}
+          </button>
+
+          {onSearchAnother && (
+            <button
+              onClick={onSearchAnother}
+              disabled={searchingAnother}
+              className="w-full py-3 border border-gray-200 rounded-full text-sm font-bold text-muted hover:border-primary hover:text-primary transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+            >
+              {searchingAnother ? (
+                <>
+                  <Spinner />
+                  Mencari...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[18px]">refresh</span>
+                  Cari yang lain
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -92,7 +229,13 @@ export default function RecipeDetailPage() {
 
   const [substituteLoading, setSubstituteLoading] = useState(false);
   const [substitute, setSubstitute] = useState<RecipeCard | null>(null);
-  const [showModal, setShowModal] = useState(false);
+  const [showSubstituteModal, setShowSubstituteModal] = useState(false);
+
+  const [selectedAlt, setSelectedAlt] = useState<RecipeCard | null>(null);
+  const [showAltModal, setShowAltModal] = useState(false);
+
+  const [replacing, setReplacing] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
 
   useEffect(() => {
     if (!menuId || isNaN(menuId)) {
@@ -121,11 +264,31 @@ export default function RecipeDetailPage() {
     try {
       const result = await getMealSubstitute(menuId);
       setSubstitute(result);
-      setShowModal(true);
+      setShowSubstituteModal(true);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Gagal menemukan pengganti");
     } finally {
       setSubstituteLoading(false);
+    }
+  }
+
+  async function handleReplace(recipeId: number) {
+    setReplacing(true);
+    try {
+      const updated = await replaceMenuRecipe(menuId, recipeId);
+      setShowSubstituteModal(false);
+      setShowAltModal(false);
+      setSuccessMsg(`Menu berhasil diganti dengan "${updated.recipe_name}"`);
+      // Reload meal detail
+      const fresh = await getMealDetail(menuId);
+      setMeal(fresh);
+      const alts = await getMealAlternatives(menuId);
+      setAlternatives(alts);
+      setTimeout(() => setSuccessMsg(""), 3000);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Gagal mengganti menu");
+    } finally {
+      setReplacing(false);
     }
   }
 
@@ -159,7 +322,7 @@ export default function RecipeDetailPage() {
   return (
     <div className="bg-background-light min-h-screen text-text-main flex flex-col font-body pb-20">
       {/* Header */}
-      <header className="px-6 py-4 flex items-center justify-between border-b border-gray-100 bg-white sticky top-0 z-50">
+      <header className="px-6 py-4 flex items-center justify-between border-b border-gray-100 bg-white sticky top-0 z-40">
         <button
           onClick={() => router.back()}
           className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface transition-colors text-text-main"
@@ -183,6 +346,14 @@ export default function RecipeDetailPage() {
         </div>
         <div className="w-10" />
       </header>
+
+      {/* Success Toast */}
+      {successMsg && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-green-500 text-white px-6 py-3 rounded-full shadow-lg font-bold text-sm flex items-center gap-2">
+          <span className="material-symbols-outlined text-[18px]">check_circle</span>
+          {successMsg}
+        </div>
+      )}
 
       <main className="flex-1 max-w-7xl mx-auto w-full p-6 lg:p-8">
         <div className="flex flex-col lg:flex-row gap-12 lg:gap-16">
@@ -306,7 +477,7 @@ export default function RecipeDetailPage() {
             <div className="mt-8 pt-8 border-t border-gray-100 flex flex-col gap-6">
               <div>
                 <h2 className="font-heading text-xl font-bold mb-1">Alternatif Sesuai Makro</h2>
-                <p className="text-sm text-muted">Nutrisi setara, rasa berbeda.</p>
+                <p className="text-sm text-muted">Nutrisi setara, rasa berbeda. Klik untuk lihat detail & ganti.</p>
               </div>
 
               {loadingAlts ? (
@@ -323,7 +494,14 @@ export default function RecipeDetailPage() {
               ) : (
                 <div className="flex gap-4 overflow-x-auto pb-6 no-scrollbar snap-x snap-mandatory">
                   {alternatives.map((alt) => (
-                    <AlternativeCard key={alt.id} recipe={alt} />
+                    <AlternativeCard
+                      key={alt.id}
+                      recipe={alt}
+                      onClick={() => {
+                        setSelectedAlt(alt);
+                        setShowAltModal(true);
+                      }}
+                    />
                   ))}
                 </div>
               )}
@@ -333,84 +511,27 @@ export default function RecipeDetailPage() {
       </main>
 
       {/* Substitute Modal */}
-      {showModal && substitute && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm"
-          onClick={() => setShowModal(false)}
-        >
-          <div
-            className="w-full max-w-lg bg-white rounded-t-4xl p-6 pb-10 flex flex-col gap-5 animate-fade-slide-up"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="flex items-center justify-between">
-              <h3 className="font-heading text-xl font-bold">Pengganti Ditemukan</h3>
-              <button
-                onClick={() => setShowModal(false)}
-                className="w-9 h-9 rounded-full bg-surface flex items-center justify-center hover:bg-gray-200 transition-colors"
-              >
-                <span className="material-symbols-outlined text-[20px]">close</span>
-              </button>
-            </div>
+      {showSubstituteModal && substitute && (
+        <RecipeModal
+          recipe={substitute}
+          title="Pengganti Ditemukan"
+          onClose={() => setShowSubstituteModal(false)}
+          onSearchAnother={handleFindSubstitute}
+          onReplace={() => handleReplace(substitute.id)}
+          replacing={replacing}
+          searchingAnother={substituteLoading}
+        />
+      )}
 
-            {/* Recipe Preview */}
-            <div className="flex gap-4 items-start">
-              <div className="w-24 h-24 rounded-2xl overflow-hidden bg-slate-100 shrink-0 relative">
-                {substitute.image_url ? (
-                  <Image src={substitute.image_url} alt={substitute.name} fill className="object-cover" unoptimized />
-                ) : (
-                  <div className="h-full flex items-center justify-center">
-                    <span className="material-symbols-outlined text-3xl text-slate-400">restaurant</span>
-                  </div>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-heading text-lg font-bold mb-3 leading-snug">{substitute.name}</h4>
-                <div className="flex flex-wrap gap-2">
-                  <span className="bg-surface px-2.5 py-1 rounded-full text-[11px] font-bold text-muted">
-                    {substitute.calories} Kkal
-                  </span>
-                  <span className="bg-primary/10 text-primary px-2.5 py-1 rounded-full text-[11px] font-bold">
-                    {substitute.protein}g Protein
-                  </span>
-                  <span className="bg-surface px-2.5 py-1 rounded-full text-[11px] font-bold text-muted">
-                    {substitute.carbs}g Karbo
-                  </span>
-                  <span className="bg-accent/10 text-accent px-2.5 py-1 rounded-full text-[11px] font-bold">
-                    {substitute.fat}g Lemak
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Prep time */}
-            {substitute.prep_time && (
-              <div className="flex items-center gap-2 text-sm text-muted">
-                <span className="material-symbols-outlined text-[16px]">schedule</span>
-                <span>{substitute.prep_time} menit</span>
-              </div>
-            )}
-
-            {/* Actions */}
-            <button
-              onClick={handleFindSubstitute}
-              disabled={substituteLoading}
-              className="w-full py-3 border border-gray-200 rounded-full text-sm font-bold text-muted hover:border-primary hover:text-primary transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
-            >
-              {substituteLoading ? (
-                <>
-                  <Spinner />
-                  Mencari...
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined text-[18px]">refresh</span>
-                  Cari yang lain
-                </>
-              )}
-            </button>
-          </div>
-        </div>
+      {/* Alternative Detail Modal */}
+      {showAltModal && selectedAlt && (
+        <RecipeModal
+          recipe={selectedAlt}
+          title="Detail Alternatif"
+          onClose={() => setShowAltModal(false)}
+          onReplace={() => handleReplace(selectedAlt.id)}
+          replacing={replacing}
+        />
       )}
     </div>
   );
