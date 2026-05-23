@@ -45,7 +45,7 @@ def _decode_supabase_token(token: str) -> dict:
     if jwks:
         return jwt.decode(
             token, jwks,
-            algorithms=["RS256"],
+            algorithms=["RS256", "ES256"],
             options={"verify_aud": False},
         )
 
