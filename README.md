@@ -1,4 +1,4 @@
-# FoodOverFuss 🍽️
+# 🍱 FoodOverFuss 
 
 > Sistem perencana menu harian berbasis AI yang personal, hemat, dan cerdas.
 
@@ -21,7 +21,7 @@ FoodOverFuss membantu masyarakat urban Indonesia merencanakan makan mingguan sec
 
 ---
 
-## Fitur Utama
+##  🚀 Fitur Utama
 
 - **Rekomendasi Menu Mingguan** — AI menyusun jadwal makan 7 hari berdasarkan profil nutrisi dan preferensi pengguna
 - **Kalender Menu Interaktif** — Tampilan visual mingguan; tiap slot bisa diganti, di-regenerate, atau dikosongkan
@@ -86,7 +86,7 @@ FoodOverFuss membantu masyarakat urban Indonesia merencanakan makan mingguan sec
 
 ---
 
-## Arsitektur Sistem
+## 🧩 Arsitektur Sistem
 
 ```
 Browser (Port 80)
@@ -278,7 +278,7 @@ GitHub Actions
 
 ---
 
-## API Endpoints (Ringkasan)
+## ⚡ API Endpoints (Ringkasan)
 
 Dokumentasi lengkap tersedia di `/docs` (Swagger UI).
 
@@ -302,4 +302,4 @@ Dokumentasi lengkap tersedia di `/docs` (Swagger UI).
 
 ## 📄 Lisensi
 
-Proyek ini dibuat untuk keperluan akademik — **Mata Kuliah Senior Project, Universitas Gadjah Mada 2025**.
+Proyek ini dibuat untuk keperluan akademik — **Mata Kuliah Senior Project, Universitas Gadjah Mada 2026**.
