@@ -29,8 +29,6 @@ FoodOverFuss membantu masyarakat urban Indonesia merencanakan makan mingguan sec
 
 <td align="center" width="33%">
 
-<img src="https://github.com/user-attachments/assets/YOUR_IMAGE_ID" width="120px;" alt="Flavia"/><br>
-
 ### Flavia Hidayriamraata Pulam
 `22/494376/TK/54219`
 
@@ -40,8 +38,6 @@ Project Manager • Software Engineer • AI Engineer
 
 <td align="center" width="33%">
 
-<img src="https://github.com/user-attachments/assets/YOUR_IMAGE_ID" width="120px;" alt="Bernards"/><br>
-
 ### Bernards Widyzulfathirrochim
 `23/512647/TK/56341`
 
@@ -50,8 +46,6 @@ Software Engineer • AI Engineer • Cloud Engineer
 </td>
 
 <td align="center" width="33%">
-
-<img src="https://github.com/user-attachments/assets/YOUR_IMAGE_ID" width="120px;" alt="Agatha"/><br>
 
 ### Agatha Husna Amalia
 `23/515562/TK/56686`
