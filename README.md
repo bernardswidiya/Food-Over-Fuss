@@ -20,6 +20,7 @@ FoodOverFuss membantu masyarakat urban Indonesia merencanakan makan mingguan sec
 | Bernards Widiyazulfathirrochim | 23/512647/TK/56341 | Anggota |
 
 ---
+
 <div align="center">
 
 # 🤝 Kontribusi Anggota
@@ -32,8 +33,8 @@ FoodOverFuss membantu masyarakat urban Indonesia merencanakan makan mingguan sec
 ### Flavia Hidayriamraata Pulam
 `22/494376/TK/54219`
 
-• Project Manager 
-• Software Engineer 
+• Project Manager <br>
+• Software Engineer <br>
 • AI Engineer
 
 </td>
@@ -43,8 +44,8 @@ FoodOverFuss membantu masyarakat urban Indonesia merencanakan makan mingguan sec
 ### Bernards Widyzulfathirrochim
 `23/512647/TK/56341`
 
-• Software Engineer 
-• AI Engineer 
+• Software Engineer <br>
+• AI Engineer <br>
 • Cloud Engineer
 
 </td>
@@ -54,8 +55,8 @@ FoodOverFuss membantu masyarakat urban Indonesia merencanakan makan mingguan sec
 ### Agatha Husna Amalia
 `23/515562/TK/56686`
 
-• UI/UX Designer 
-• Cloud Engineer 
+• UI/UX Designer <br>
+• Cloud Engineer <br>
 • Software Engineer
 
 </td>
