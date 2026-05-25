@@ -8,7 +8,7 @@ import os
 # Buat semua tabel (Idealnya gunakan Alembic untuk production)
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Food Over Fuss API", redirect_slashes=False)
+app = FastAPI(title="Food Over Fuss API")
 
 # SessionMiddleware diperlukan oleh Authlib untuk Google OAuth state/CSRF
 app.add_middleware(
