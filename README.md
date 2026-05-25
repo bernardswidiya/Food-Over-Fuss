@@ -5,7 +5,7 @@
 FoodOverFuss membantu masyarakat urban Indonesia merencanakan makan mingguan secara otomatis dengan mempertimbangkan keseimbangan nutrisi (kalori, protein, karbo, lemak), anggaran harian, dan kondisi khusus seperti alergi atau tujuan diet. Sistem rekomendasi menggunakan algoritma KNN-Affinity yang belajar dari preferensi pengguna secara adaptif. Semakin sering digunakan, semakin personal rekomendasinya.
 
 **Live Demo:** [https://foodoverfuss.southeastasia.cloudapp.azure.com](https://foodoverfuss.southeastasia.cloudapp.azure.com)  
-**API Docs:** [https://foodoverfuss.southeastasia.cloudapp.azure.com:8000/docs](https://foodoverfuss.southeastasia.cloudapp.azure.com:8000/docs)
+**API Docs:** [https://foodoverfuss.southeastasia.cloudapp.azure.com/docs](https://foodoverfuss.southeastasia.cloudapp.azure.com/docs)
 
 ---
 
@@ -98,25 +98,28 @@ FoodOverFuss membantu masyarakat urban Indonesia merencanakan makan mingguan sec
 ## 🧩 Arsitektur Sistem
 
 ```
-Browser (Port 80)
+Browser (HTTPS :443)
       │
       ▼
 ┌─────────────────────┐
-│  Frontend Service   │  Next.js 16 (standalone)
-│  Docker Port 3000   │  → mapped ke Host :80
+│  Nginx (Host)       │  SSL Termination (Let's Encrypt)
+│  Port 80 → 443      │  Reverse proxy ke Docker services
 └────────┬────────────┘
-         │  HTTP via Docker network
-         ▼
-┌─────────────────────┐
-│  Backend Service    │  FastAPI + Uvicorn
-│  Docker Port 8000   │  → mapped ke Host :8000
-└────────┬────────────┘
-         │  SSL/TLS
-         ▼
-┌─────────────────────┐
-│  Supabase           │  PostgreSQL 15
-│  + Auth (ES256 JWT) │
-└─────────────────────┘
+         │  HTTP via localhost
+         ├──────────────────────────────────┐
+         ▼                                  ▼
+┌─────────────────────┐        ┌─────────────────────┐
+│  Frontend Service   │        │  Backend Service    │
+│  Next.js 16         │        │  FastAPI + Uvicorn  │
+│  Docker Port 3000   │        │  Docker Port 8000   │
+└─────────────────────┘        └────────┬────────────┘
+                                        │  SSL/TLS
+                                        ▼
+                               ┌─────────────────────┐
+                               │  Supabase           │
+                               │  PostgreSQL 15      │
+                               │  + Auth (ES256 JWT) │
+                               └─────────────────────┘
 ```
 
 ---
