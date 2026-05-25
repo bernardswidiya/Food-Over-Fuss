@@ -32,7 +32,9 @@ FoodOverFuss membantu masyarakat urban Indonesia merencanakan makan mingguan sec
 ### Flavia Hidayriamraata Pulam
 `22/494376/TK/54219`
 
-Project Manager • Software Engineer • AI Engineer
+• Project Manager 
+• Software Engineer 
+• AI Engineer
 
 </td>
 
@@ -41,7 +43,9 @@ Project Manager • Software Engineer • AI Engineer
 ### Bernards Widyzulfathirrochim
 `23/512647/TK/56341`
 
-Software Engineer • AI Engineer • Cloud Engineer
+• Software Engineer 
+• AI Engineer 
+• Cloud Engineer
 
 </td>
 
@@ -50,7 +54,9 @@ Software Engineer • AI Engineer • Cloud Engineer
 ### Agatha Husna Amalia
 `23/515562/TK/56686`
 
-UI/UX Designer • Cloud Engineer • Software Engineer
+• UI/UX Designer 
+• Cloud Engineer 
+• Software Engineer
 
 </td>
 
