@@ -4,8 +4,8 @@
 
 FoodOverFuss membantu masyarakat urban Indonesia merencanakan makan mingguan secara otomatis dengan mempertimbangkan keseimbangan nutrisi (kalori, protein, karbo, lemak), anggaran harian, dan kondisi khusus seperti alergi atau tujuan diet. Sistem rekomendasi menggunakan algoritma KNN-Affinity yang belajar dari preferensi pengguna secara adaptif. Semakin sering digunakan, semakin personal rekomendasinya.
 
-**Live Demo:** [http://foodoverfuss.southeastasia.cloudapp.azure.com](http://foodoverfuss.southeastasia.cloudapp.azure.com)  
-**API Docs:** [http://foodoverfuss.southeastasia.cloudapp.azure.com:8000/docs](http://foodoverfuss.southeastasia.cloudapp.azure.com:8000/docs)
+**Live Demo:** [https://foodoverfuss.southeastasia.cloudapp.azure.com](https://foodoverfuss.southeastasia.cloudapp.azure.com)  
+**API Docs:** [https://foodoverfuss.southeastasia.cloudapp.azure.com:8000/docs](https://foodoverfuss.southeastasia.cloudapp.azure.com:8000/docs)
 
 ---
 
