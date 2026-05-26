@@ -24,7 +24,11 @@ export default function GroceryListPage() {
   const [sortBy, setSortBy] = useState("quantity_desc");
 
   const [items, setItems] = useState<AggregatedGroceryItem[]>([]);
-  const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
+
+  // FIXED: pakai number/index bukan string name
+  const [checkedItems, setCheckedItems] = useState<Set<number>>(
+    new Set()
+  );
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -51,14 +55,15 @@ export default function GroceryListPage() {
     fetchGroceries();
   }, [fetchGroceries]);
 
-  const toggleCheck = (name: string) => {
+  // FIXED
+  const toggleCheck = (id: number) => {
     setCheckedItems((prev) => {
       const next = new Set(prev);
 
-      if (next.has(name)) {
-        next.delete(name);
+      if (next.has(id)) {
+        next.delete(id);
       } else {
-        next.add(name);
+        next.add(id);
       }
 
       return next;
@@ -209,7 +214,9 @@ export default function GroceryListPage() {
                   <div className="flex flex-col">
 
                     {items.map((item, idx) => {
-                      const isChecked = checkedItems.has(item.name);
+
+                      // FIXED
+                      const isChecked = checkedItems.has(idx);
 
                       return (
                         <label
@@ -222,7 +229,10 @@ export default function GroceryListPage() {
                               type="checkbox"
                               aria-label={`Centang ${item.name}`}
                               checked={isChecked}
-                              onChange={() => toggleCheck(item.name)}
+
+                              // FIXED
+                              onChange={() => toggleCheck(idx)}
+
                               className="w-6 h-6 rounded border-gray-300 text-primary focus:ring-primary/20 transition-all cursor-pointer"
                             />
 
@@ -330,7 +340,10 @@ export default function GroceryListPage() {
 
                 <button
                   onClick={() =>
-                    setCheckedItems(new Set(items.map((i) => i.name)))
+                    // FIXED
+                    setCheckedItems(
+                      new Set(items.map((_, idx) => idx))
+                    )
                   }
                   className="w-full bg-primary hover:bg-primary-hover text-white rounded-full py-4 font-bold shadow-soft active:scale-95 transition-transform flex items-center justify-center gap-2"
                 >
