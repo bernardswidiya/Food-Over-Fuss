@@ -59,21 +59,29 @@ export default function TopHeader() {
     }
   }, []);
 
+  const fetchUser = useCallback(async () => {
+    try {
+      const userData = await getMe();
+      setUser(userData);
+    } catch {
+      // handled by middleware
+    } finally {
+      setUserLoading(false);
+    }
+  }, []);
+
   // Fetch user profile
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const userData = await getMe();
-        setUser(userData);
-      } catch {
-        // handled by middleware
-      } finally {
-        setUserLoading(false);
-      }
-    };
     fetchUser();
     fetchNotifs();
-  }, [fetchNotifs]);
+  }, [fetchUser, fetchNotifs]);
+
+  // Re-fetch user when profile is updated from settings
+  useEffect(() => {
+    const handler = () => fetchUser();
+    window.addEventListener("profile:updated", handler);
+    return () => window.removeEventListener("profile:updated", handler);
+  }, [fetchUser]);
 
   // Poll for new notifications every 60 seconds
   useEffect(() => {
@@ -104,7 +112,7 @@ export default function TopHeader() {
     } catch {
       // redirect anyway
     } finally {
-      router.push("/login");
+      window.location.href = "/login";
     }
   };
 

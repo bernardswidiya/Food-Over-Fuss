@@ -80,6 +80,7 @@ export default function SettingsPage() {
         allergies: selectedDiets.length > 0 ? selectedDiets.join(",") : undefined,
       });
       setIsDirty(false);
+      window.dispatchEvent(new CustomEvent("profile:updated"));
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Gagal menyimpan");
     } finally {
@@ -123,6 +124,7 @@ export default function SettingsPage() {
     try {
       const updatedUser = await uploadAvatar(file);
       setProfilePicture(updatedUser.profile_picture);
+      window.dispatchEvent(new CustomEvent("profile:updated"));
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Gagal mengunggah foto");
     } finally {
@@ -140,6 +142,7 @@ export default function SettingsPage() {
     try {
       const updatedUser = await deleteAvatar();
       setProfilePicture(updatedUser.profile_picture);
+      window.dispatchEvent(new CustomEvent("profile:updated"));
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Gagal menghapus foto");
     } finally {
